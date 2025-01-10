@@ -1,0 +1,18 @@
+time-management-extension/
+├── manifest.json
+├── src/
+│   ├── popup/
+│   │   ├── popup.html
+│   │   ├── popup.css
+│   │   └── popup.js
+│   ├── background/
+│   │   └── background.js
+│   └── components/
+│       ├── TaskInput.js
+│       ├── QuadrantView.js
+│       ├── CalendarView.js
+│       └── Notification.js
+├── assets/
+│   └── icons/
+└── styles/
+    └── main.css 

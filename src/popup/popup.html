@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>时间管理助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>时间管理助手</h1>
+      <nav>
+        <button id="quadrantView">四象限视图</button>
+        <button id="calendarView">日历视图</button>
+      </nav>
+    </header>
+
+    <div class="task-input">
+      <input type="text" id="taskTitle" placeholder="任务标题">
+      <textarea id="taskDescription" placeholder="任务描述"></textarea>
+      <div class="task-properties">
+        <div>
+          <label>截止日期：</label>
+          <input type="datetime-local" id="deadline">
+        </div>
+        <div>
+          <label>重要性：</label>
+          <input type="checkbox" id="important">
+        </div>
+        <div>
+          <label>紧急性：</label>
+          <input type="checkbox" id="urgent">
+        </div>
+      </div>
+      <button id="addTask">添加任务</button>
+    </div>
+
+    <div id="viewContainer">
+      <!-- 视图内容将通过 JavaScript 动态加载 -->
+    </div>
+  </div>
+  <script src="../components/TaskInput.js"></script>
+  <script src="../components/QuadrantView.js"></script>
+  <script src="../components/CalendarView.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 
