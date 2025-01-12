@@ -29,9 +29,10 @@
             v-for="task in getDateTasks(date.date)"
             :key="task.id"
             :class="[
-              'text-xs p-1 rounded cursor-pointer truncate',
+              'task-item text-xs p-1 rounded cursor-pointer truncate',
               getTaskColorClass(task)
             ]"
+            :data-task-id="task.id"
             @click="handleTaskClick(task)"
           >
             {{ task.title }}
@@ -43,10 +44,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import dayjs from 'dayjs';
+import tippy from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 import { useTaskStore } from '@/stores/task';
 import type { Task } from '@/types/task';
+import { formatDate } from '@/utils/date';
 
 const taskStore = useTaskStore();
 
@@ -81,9 +85,21 @@ const isToday = (date: Date) => {
 
 // 获取指定日期的任务
 const getDateTasks = (date: Date) => {
-  return taskStore.tasks.filter(task => 
-    dayjs(task.deadline).isSame(date, 'day')
-  );
+  console.log('正在获取日期的任务:', dayjs(date).format('YYYY-MM-DD'));
+  const tasks = taskStore.tasks.filter(task => {
+    const taskDate = dayjs(task.deadline);
+    const compareDate = dayjs(date);
+    const isSameDay = taskDate.format('YYYY-MM-DD') === compareDate.format('YYYY-MM-DD');
+    console.log('比较任务:', {
+      taskTitle: task.title,
+      taskDate: taskDate.format('YYYY-MM-DD HH:mm:ss'),
+      compareDate: compareDate.format('YYYY-MM-DD'),
+      isSameDay
+    });
+    return isSameDay;
+  });
+  console.log('找到的任务:', tasks);
+  return tasks;
 };
 
 // 获取任务数量
@@ -102,7 +118,75 @@ const getTaskColorClass = (task: Task) => {
 
 // 处理任务点击
 const handleTaskClick = (task: Task) => {
-  // TODO: 显示任务详情或编辑对话框
-  console.log('Task clicked:', task);
+  console.log('点击任务:', task);
 };
+
+// 格式化任务详情
+const formatTaskDetails = (task: Task) => {
+  return `
+    <div class="p-2">
+      <div class="font-bold mb-1">${task.title}</div>
+      <div class="text-sm mb-1">${task.description || '无描述'}</div>
+      <div class="text-xs text-gray-500">
+        截止时间: ${formatDate(task.deadline)}
+        <br>
+        优先级: ${task.important ? '重要' : '不重要'}${task.urgent ? '且紧急' : '不紧急'}
+        <br>
+        状态: ${task.completed ? '已完成' : '未完成'}
+      </div>
+    </div>
+  `;
+};
+
+// 初始化提示
+const initTooltips = () => {
+  const taskElements = document.querySelectorAll('.task-item');
+  taskElements.forEach(element => {
+    const taskId = element.getAttribute('data-task-id');
+    const task = taskStore.tasks.find(t => t.id === Number(taskId));
+    if (task) {
+      tippy(element, {
+        content: formatTaskDetails(task),
+        allowHTML: true,
+        placement: 'right',
+        interactive: true,
+        theme: 'custom',
+        delay: [200, 0], // 显示延迟200ms，隐藏无延迟
+        maxWidth: 300
+      });
+    }
+  });
+};
+
+// 在组件挂载和任务更新时初始化提示
+onMounted(() => {
+  console.log('日历视图加载，当前任务列表:', taskStore.tasks);
+  // 等待DOM更新后初始化提示
+  setTimeout(initTooltips, 0);
+});
+
+// 监听任务变化
+watch(() => taskStore.tasks, () => {
+  // 等待DOM更新后重新初始化提示
+  setTimeout(initTooltips, 0);
+}, { deep: true });
 </script> 
+
+<style>
+/* 自定义提示样式 */
+.tippy-box[data-theme~='custom'] {
+  background-color: white;
+  color: black;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.tippy-box[data-theme~='custom'] .tippy-arrow {
+  color: white;
+}
+
+.tippy-box[data-theme~='custom'] .tippy-content {
+  padding: 0;
+}
+</style> 

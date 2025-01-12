@@ -27,16 +27,30 @@ export const useTaskStore = defineStore('task', () => {
       if (result.tasks) {
         // 验证并格式化任务数据
         if (Array.isArray(result.tasks)) {
-          const formattedTasks = result.tasks.map(task => ({
-            id: Number(task.id),
-            title: String(task.title),
-            description: task.description ? String(task.description) : '',
-            deadline: new Date(task.deadline),
-            important: Boolean(task.important),
-            urgent: Boolean(task.urgent),
-            completed: Boolean(task.completed),
-            createdAt: new Date(task.createdAt)
-          }));
+          const formattedTasks = result.tasks.map(task => {
+            // 确保日期是正确的格式
+            const deadline = new Date(task.deadline);
+            const createdAt = new Date(task.createdAt);
+            
+            console.log('格式化任务日期:', {
+              taskId: task.id,
+              originalDeadline: task.deadline,
+              formattedDeadline: deadline,
+              originalCreatedAt: task.createdAt,
+              formattedCreatedAt: createdAt
+            });
+            
+            return {
+              id: Number(task.id),
+              title: String(task.title),
+              description: task.description ? String(task.description) : '',
+              deadline,
+              important: Boolean(task.important),
+              urgent: Boolean(task.urgent),
+              completed: Boolean(task.completed),
+              createdAt
+            };
+          });
           
           tasks.value = formattedTasks;
           console.log('格式化后的任务列表:', JSON.stringify(formattedTasks, null, 2));
@@ -61,7 +75,6 @@ export const useTaskStore = defineStore('task', () => {
   const saveTasks = async () => {
     try {
       console.log('准备保存任务列表，当前任务数:', tasks.value.length);
-      console.log('任务列表详情:', JSON.stringify(tasks.value, null, 2));
       
       // 确保任务列表是数组
       if (!Array.isArray(tasks.value)) {
@@ -70,16 +83,28 @@ export const useTaskStore = defineStore('task', () => {
       }
 
       // 检查每个任务的格式
-      const validTasks = tasks.value.map(task => ({
-        id: task.id,
-        title: task.title,
-        description: task.description || '',
-        deadline: task.deadline,
-        important: Boolean(task.important),
-        urgent: Boolean(task.urgent),
-        completed: Boolean(task.completed),
-        createdAt: task.createdAt
-      }));
+      const validTasks = tasks.value.map(task => {
+        // 确保日期是 ISO 字符串格式
+        const deadline = new Date(task.deadline).toISOString();
+        const createdAt = new Date(task.createdAt).toISOString();
+        
+        console.log('保存任务日期:', {
+          taskId: task.id,
+          deadline,
+          createdAt
+        });
+        
+        return {
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          deadline,
+          important: Boolean(task.important),
+          urgent: Boolean(task.urgent),
+          completed: Boolean(task.completed),
+          createdAt
+        };
+      });
 
       console.log('格式化后的任务列表:', JSON.stringify(validTasks, null, 2));
       await chrome.storage.local.set({ tasks: validTasks });
