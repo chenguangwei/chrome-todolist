@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useTaskStore } from '@/stores/task';
 
 const taskStore = useTaskStore();
@@ -67,6 +67,49 @@ const description = ref('');
 const deadline = ref('');
 const important = ref(false);
 const urgent = ref(false);
+
+// 保存表单状态
+const saveFormState = async () => {
+  try {
+    await chrome.storage.local.set({
+      taskForm: {
+        title: title.value,
+        description: description.value,
+        deadline: deadline.value,
+        important: important.value,
+        urgent: urgent.value
+      }
+    });
+  } catch (error) {
+    console.error('保存表单状态失败:', error);
+  }
+};
+
+// 加载表单状态
+const loadFormState = async () => {
+  try {
+    const data = await chrome.storage.local.get('taskForm');
+    if (data.taskForm) {
+      title.value = data.taskForm.title || '';
+      description.value = data.taskForm.description || '';
+      deadline.value = data.taskForm.deadline || '';
+      important.value = data.taskForm.important || false;
+      urgent.value = data.taskForm.urgent || false;
+    }
+  } catch (error) {
+    console.error('加载表单状态失败:', error);
+  }
+};
+
+// 监听表单变化
+watch([title, description, deadline, important, urgent], () => {
+  saveFormState();
+});
+
+// 初始化时加载表单状态
+onMounted(() => {
+  loadFormState();
+});
 
 const handleSubmit = async () => {
   if (!title.value || !deadline.value) {
@@ -88,5 +131,8 @@ const handleSubmit = async () => {
   deadline.value = '';
   important.value = false;
   urgent.value = false;
+  
+  // 清除存储的表单状态
+  await chrome.storage.local.remove('taskForm');
 };
 </script> 

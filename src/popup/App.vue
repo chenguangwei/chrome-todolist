@@ -1,58 +1,72 @@
 <template>
-  <div class="h-full flex flex-col">
-    <header class="flex justify-between items-center p-4 border-b bg-white sticky top-0 z-10">
-      <h1 class="text-2xl font-bold">时间管理助手</h1>
-      <nav class="space-x-4">
-        <button 
-          @click="currentView = 'quadrant'"
-          :class="['px-4 py-2 rounded transition-colors', 
-            currentView === 'quadrant' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300']"
+  <div class="min-h-screen bg-gray-100 p-4">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">时间管理助手</h1>
+      <div class="flex space-x-4">
+        <button
+          v-for="view in views"
+          :key="view.id"
+          @click="currentView = view.id"
+          :class="[
+            'px-4 py-2 rounded-lg font-medium transition-colors',
+            currentView === view.id
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          ]"
         >
-          四象限视图
+          {{ view.name }}
         </button>
-        <button 
-          @click="currentView = 'calendar'"
-          :class="['px-4 py-2 rounded transition-colors', 
-            currentView === 'calendar' ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300']"
-        >
-          日历视图
-        </button>
-      </nav>
-      <button 
-        @click="openInNewWindow"
-        class="ml-4 px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-      >
-        打开新窗口
-      </button>
+      </div>
     </header>
 
-    <div class="flex-1 overflow-auto p-4">
-      <TaskInput class="mb-4 sticky top-0 bg-white z-10 pb-4" />
-      
-      <div class="h-[calc(100%-80px)]">
-        <QuadrantView v-if="currentView === 'quadrant'" />
-        <CalendarView v-else />
-      </div>
-    </div>
+    <TaskInput class="mb-6" />
+
+    <main class="bg-white rounded-lg shadow p-4 min-h-[400px]">
+      <QuadrantView v-if="currentView === 'quadrant'" />
+      <CalendarView v-else-if="currentView === 'calendar'" />
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useTaskStore } from '@/stores/task';
 import TaskInput from '../components/TaskInput.vue';
 import QuadrantView from '../components/QuadrantView.vue';
 import CalendarView from '../components/CalendarView.vue';
 
-const currentView = ref<'quadrant' | 'calendar'>('quadrant');
+const views = [
+  { id: 'quadrant', name: '四象限视图' },
+  { id: 'calendar', name: '日历视图' }
+];
 
-const openInNewWindow = () => {
-  chrome.windows.create({
-    url: chrome.runtime.getURL('popup.html'),
-    type: 'popup',
-    width: 800,
-    height: 600
-  });
-};
+const currentView = ref('quadrant');
+const taskStore = useTaskStore();
+
+// 初始化时加载任务和视图状态
+onMounted(async () => {
+  // 加载任务
+  await taskStore.loadTasks();
+  
+  // 加载上次的视图设置
+  try {
+    const data = await chrome.storage.local.get('currentView');
+    if (data.currentView) {
+      currentView.value = data.currentView;
+    }
+  } catch (error) {
+    console.error('加载视图设置失败:', error);
+  }
+});
+
+// 监听视图变化并保存
+watch(currentView, async (newView) => {
+  try {
+    await chrome.storage.local.set({ currentView: newView });
+  } catch (error) {
+    console.error('保存视图设置失败:', error);
+  }
+});
 </script>
 
 <style>

@@ -26,7 +26,7 @@ module.exports = {
     extensions: ['.ts', '.js', '.vue', '.json'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      'vue': '@vue/runtime-dom'  // 确保使用正确的 Vue 构建版本
+      'vue': '@vue/runtime-dom'
     }
   },
   module: {
@@ -56,9 +56,9 @@ module.exports = {
   },
   plugins: [
     new webpack.DefinePlugin({
-      '__VUE_OPTIONS_API__': true,
-      '__VUE_PROD_DEVTOOLS__': !isProd,
-      '__VUE_PROD_HYDRATION_MISMATCH_DETAILS__': !isProd,
+      __VUE_OPTIONS_API__: true,
+      __VUE_PROD_DEVTOOLS__: !isProd,
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: !isProd,
       'process.env': {
         NODE_ENV: JSON.stringify(NODE_ENV)
       }
@@ -71,7 +71,8 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'src', 'popup', 'index.html'),
       filename: 'popup.html',
-      chunks: ['popup']
+      chunks: ['popup'],
+      inject: true
     }),
     new CopyWebpackPlugin({
       patterns: [

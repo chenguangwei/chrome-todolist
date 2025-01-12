@@ -1,4 +1,4 @@
-import { Task } from '@/types/task';
+import type { Task } from '@/types/task';
 
 export class NotificationManager {
   async createNotification(task: Task) {
@@ -6,10 +6,10 @@ export class NotificationManager {
       type: 'basic',
       iconUrl: '/assets/icons/icon128.png',
       title: '任务提醒',
-      message: task.title,
+      message: `${task.title}\n${task.description || ''}`,
       buttons: [
         { title: '完成任务' },
-        { title: '稍后提醒' }
+        { title: '稍后提醒(15分钟)' }
       ],
       requireInteraction: true
     });

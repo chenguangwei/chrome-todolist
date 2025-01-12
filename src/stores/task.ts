@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import type { Task } from '@/types/task';
 
 export const useTaskStore = defineStore('task', () => {
@@ -7,13 +7,22 @@ export const useTaskStore = defineStore('task', () => {
 
   // 从 Chrome storage 加载任务
   const loadTasks = async () => {
-    const data = await chrome.storage.local.get('tasks');
-    tasks.value = data.tasks || [];
+    try {
+      const data = await chrome.storage.local.get('tasks');
+      tasks.value = Array.isArray(data.tasks) ? data.tasks : [];
+    } catch (error) {
+      console.error('加载任务失败:', error);
+      tasks.value = [];
+    }
   };
 
   // 保存任务到 Chrome storage
   const saveTasks = async () => {
-    await chrome.storage.local.set({ tasks: tasks.value });
+    try {
+      await chrome.storage.local.set({ tasks: tasks.value });
+    } catch (error) {
+      console.error('保存任务失败:', error);
+    }
   };
 
   // 添加任务
@@ -29,9 +38,13 @@ export const useTaskStore = defineStore('task', () => {
     
     // 设置提醒
     if (new Date(task.deadline).getTime() > Date.now()) {
-      await chrome.alarms.create(`task-${newTask.id}`, {
-        when: new Date(task.deadline).getTime()
-      });
+      try {
+        await chrome.alarms.create(`task-${newTask.id}`, {
+          when: new Date(task.deadline).getTime()
+        });
+      } catch (error) {
+        console.error('设置提醒失败:', error);
+      }
     }
   };
 
@@ -48,17 +61,24 @@ export const useTaskStore = defineStore('task', () => {
   const deleteTask = async (taskId: number) => {
     tasks.value = tasks.value.filter(t => t.id !== taskId);
     await saveTasks();
-    await chrome.alarms.clear(`task-${taskId}`);
+    try {
+      await chrome.alarms.clear(`task-${taskId}`);
+    } catch (error) {
+      console.error('清除提醒失败:', error);
+    }
   };
 
-  // 初始化加载任务
-  loadTasks();
+  // 初始化时加载任务
+  onMounted(() => {
+    loadTasks();
+  });
 
   return {
     tasks,
     addTask,
     updateTask,
     deleteTask,
-    loadTasks
+    loadTasks,
+    saveTasks
   };
 }); 

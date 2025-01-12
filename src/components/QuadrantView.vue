@@ -19,7 +19,7 @@
               class="text-sm px-2 py-1 rounded"
               :class="task.completed ? 'bg-gray-200' : 'bg-green-100 text-green-800'"
             >
-              {{ task.completed ? '已完成' : '完成' }}
+              {{ task.completed ? '已完成' : '未完成' }}
             </button>
           </div>
           <p class="text-sm text-gray-600 mt-1">{{ task.description }}</p>

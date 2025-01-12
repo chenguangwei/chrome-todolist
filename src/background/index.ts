@@ -7,7 +7,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   const tasks = data.tasks || [];
   
   const task = tasks.find(t => t.id === parseInt(taskId));
-  if (task) {
+  if (task && !task.completed) {
     const notificationManager = new NotificationManager();
     await notificationManager.createNotification(task);
   }
@@ -27,11 +27,25 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
       await chrome.storage.local.set({ tasks });
     } else if (buttonIndex === 1) {
       // 稍后提醒（15分钟后）
-      const notificationManager = new NotificationManager();
       const task = tasks[taskIndex];
       await chrome.alarms.create(`task-${task.id}`, {
         when: Date.now() + (15 * 60 * 1000)
       });
     }
   }
+});
+
+// 初始化时设置所有未完成任务的提醒
+chrome.runtime.onStartup.addListener(async () => {
+  const data = await chrome.storage.local.get('tasks');
+  const tasks = data.tasks || [];
+  
+  const now = Date.now();
+  tasks.forEach(task => {
+    if (!task.completed && new Date(task.deadline).getTime() > now) {
+      chrome.alarms.create(`task-${task.id}`, {
+        when: new Date(task.deadline).getTime()
+      });
+    }
+  });
 }); 
