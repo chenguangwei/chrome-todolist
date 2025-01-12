@@ -18,7 +18,12 @@ const getTasks = async (): Promise<Task[]> => {
 // 监听定时器触发
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
-    console.log('收到提醒:', alarm);
+    console.log('收到 alarm 事件:', {
+      name: alarm.name,
+      scheduledTime: new Date(alarm.scheduledTime),
+      currentTime: new Date()
+    });
+
     const taskId = parseInt(alarm.name.replace('task-', ''));
     if (isNaN(taskId)) {
       console.log('无效的任务ID');
@@ -71,7 +76,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         console.log('通知已创建，ID:', notificationId);
       } catch (err: any) {
         console.error('创建通知失败:', err);
-        // 打印详细的错误信息
         console.error('错误详情:', {
           name: err.name,
           message: err.message,
@@ -83,7 +87,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   } catch (err: any) {
     console.error('处理提醒失败:', err);
-    // 打印详细的错误信息
     console.error('错误详情:', {
       name: err.name,
       message: err.message,
@@ -116,13 +119,19 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
   }
 });
 
-// 初始化时设置所有未完成任务的提醒
+// 在扩展启动时检查所有 alarms
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    console.log('初始化提醒...');
-    const tasks = await getTasks();
-    const now = Date.now();
+    console.log('扩展启动，检查所有提醒...');
+    const alarms = await chrome.alarms.getAll();
+    console.log('当前所有提醒:', alarms);
 
+    // 获取所有任务
+    const tasks = await getTasks();
+    console.log('当前所有任务:', tasks);
+
+    // 重新设置未完成任务的提醒
+    const now = Date.now();
     for (const task of tasks) {
       if (!task.completed) {
         const deadline = new Date(task.deadline).getTime();
@@ -130,12 +139,15 @@ chrome.runtime.onStartup.addListener(async () => {
           await chrome.alarms.create(`task-${task.id}`, {
             when: deadline
           });
-          console.log('设置提醒:', task.id, new Date(deadline));
+          console.log('重新设置提醒:', {
+            taskId: task.id,
+            deadline: new Date(deadline)
+          });
         }
       }
     }
   } catch (error) {
-    console.error('初始化提醒失败:', error);
+    console.error('启动时检查提醒失败:', error);
   }
 });
 

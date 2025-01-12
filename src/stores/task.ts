@@ -130,15 +130,44 @@ export const useTaskStore = defineStore('task', () => {
     await saveTasks();
     
     // 设置提醒
-    if (new Date(task.deadline).getTime() > Date.now()) {
+    const deadlineTime = new Date(task.deadline).getTime();
+    const now = Date.now();
+    
+    if (deadlineTime > now) {
       try {
-        await chrome.alarms.create(`task-${newTask.id}`, {
-          when: new Date(task.deadline).getTime()
+        console.log('准备设置提醒:', {
+          taskId: newTask.id,
+          deadline: new Date(task.deadline),
+          deadlineTime,
+          currentTime: new Date(now),
+          timeUntilDeadline: (deadlineTime - now) / 1000 / 60 + ' 分钟'
         });
-        console.log('提醒已设置:', newTask.id, new Date(task.deadline));
+
+        await chrome.alarms.create(`task-${newTask.id}`, {
+          when: deadlineTime
+        });
+
+        // 验证 alarm 是否创建成功
+        const alarms = await chrome.alarms.getAll();
+        console.log('当前所有提醒:', alarms);
+        
+        const alarm = alarms.find(a => a.name === `task-${newTask.id}`);
+        if (alarm) {
+          console.log('提醒设置成功:', {
+            name: alarm.name,
+            scheduledTime: new Date(alarm.scheduledTime)
+          });
+        } else {
+          console.error('提醒设置失败: 未找到刚创建的提醒');
+        }
       } catch (error) {
         console.error('设置提醒失败:', error);
       }
+    } else {
+      console.log('不设置提醒，因为截止时间已过:', {
+        deadline: new Date(task.deadline),
+        currentTime: new Date(now)
+      });
     }
   };
 

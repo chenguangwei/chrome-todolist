@@ -6,6 +6,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   
   const task = tasks.find(t => t.id === parseInt(taskId));
   if (task) {
+    console.log(`Alarm triggered: ${alarm.name}`);
     const notificationManager = new NotificationManager();
     await notificationManager.createNotification(task);
   }
