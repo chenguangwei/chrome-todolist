@@ -1,30 +1,30 @@
 <template>
   <div class="min-h-screen bg-gray-100 p-4">
-    <header class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-2">时间管理助手</h1>
-      <div class="flex space-x-4">
+    <div v-if="isLoading" class="flex justify-center items-center h-32">
+      <div class="text-gray-500">加载中...</div>
+    </div>
+    <div v-else>
+      <TaskInput />
+      <div class="mt-4 flex space-x-2">
         <button
           v-for="view in views"
           :key="view.id"
           @click="currentView = view.id"
           :class="[
-            'px-4 py-2 rounded-lg font-medium transition-colors',
+            'px-3 py-1 rounded',
             currentView === view.id
               ? 'bg-blue-500 text-white'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
           ]"
         >
           {{ view.name }}
         </button>
       </div>
-    </header>
-
-    <TaskInput class="mb-6" />
-
-    <main class="bg-white rounded-lg shadow p-4 min-h-[400px]">
-      <QuadrantView v-if="currentView === 'quadrant'" />
-      <CalendarView v-else-if="currentView === 'calendar'" />
-    </main>
+      <div class="mt-4">
+        <QuadrantView v-if="currentView === 'quadrant'" />
+        <CalendarView v-else />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -42,20 +42,36 @@ const views = [
 
 const currentView = ref('quadrant');
 const taskStore = useTaskStore();
+const isLoading = ref(true);
 
 // 初始化时加载任务和视图状态
 onMounted(async () => {
-  // 加载任务
-  await taskStore.loadTasks();
-  
-  // 加载上次的视图设置
   try {
-    const data = await chrome.storage.local.get('currentView');
-    if (data.currentView) {
-      currentView.value = data.currentView;
+    console.log('App mounted, 开始初始化...');
+    isLoading.value = true;
+    
+    // 重置 store 的初始化状态
+    console.log('重置 store 状态...');
+    taskStore.$reset();
+    
+    // 加载任务
+    console.log('开始加载任务...');
+    await taskStore.loadTasks();
+    console.log('任务加载完成，当前任务数:', taskStore.tasks.length);
+    
+    // 加载上次的视图设置
+    console.log('加载视图设置...');
+    const viewData = await chrome.storage.local.get('currentView');
+    if (viewData.currentView) {
+      currentView.value = viewData.currentView;
+      console.log('已恢复上次的视图设置:', currentView.value);
     }
+    
+    isLoading.value = false;
+    console.log('初始化完成');
   } catch (error) {
-    console.error('加载视图设置失败:', error);
+    console.error('初始化失败:', error);
+    isLoading.value = false;
   }
 });
 

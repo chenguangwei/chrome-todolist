@@ -1,6 +1,6 @@
 <template>
   <div class="bg-white p-4 rounded-lg shadow">
-    <div class="space-y-4">
+    <form @submit.prevent="handleSubmit" class="space-y-4">
       <input
         v-model="title"
         type="text"
@@ -47,12 +47,12 @@
       </div>
       
       <button
-        @click="handleSubmit"
+        type="submit"
         class="w-full px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         添加任务
       </button>
-    </div>
+    </form>
   </div>
 </template>
 
@@ -68,28 +68,13 @@ const deadline = ref('');
 const important = ref(false);
 const urgent = ref(false);
 
-// 保存表单状态
-const saveFormState = async () => {
-  try {
-    await chrome.storage.local.set({
-      taskForm: {
-        title: title.value,
-        description: description.value,
-        deadline: deadline.value,
-        important: important.value,
-        urgent: urgent.value
-      }
-    });
-  } catch (error) {
-    console.error('保存表单状态失败:', error);
-  }
-};
-
 // 加载表单状态
-const loadFormState = async () => {
+onMounted(async () => {
   try {
+    console.log('TaskInput mounted');
     const data = await chrome.storage.local.get('taskForm');
     if (data.taskForm) {
+      console.log('加载表单状态:', data.taskForm);
       title.value = data.taskForm.title || '';
       description.value = data.taskForm.description || '';
       deadline.value = data.taskForm.deadline || '';
@@ -99,17 +84,23 @@ const loadFormState = async () => {
   } catch (error) {
     console.error('加载表单状态失败:', error);
   }
-};
-
-// 监听表单变化
-watch([title, description, deadline, important, urgent], () => {
-  saveFormState();
 });
 
-// 初始化时加载表单状态
-onMounted(() => {
-  loadFormState();
-});
+// 监听表单变化并保存状态
+watch([title, description, deadline, important, urgent], async () => {
+  try {
+    const formState = {
+      title: title.value,
+      description: description.value,
+      deadline: deadline.value,
+      important: important.value,
+      urgent: urgent.value
+    };
+    await chrome.storage.local.set({ taskForm: formState });
+  } catch (error) {
+    console.error('保存表单状态失败:', error);
+  }
+}, { deep: true });
 
 const handleSubmit = async () => {
   if (!title.value || !deadline.value) {

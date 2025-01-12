@@ -8,6 +8,7 @@
     "notifications",
     "alarms"
   ],
+  "host_permissions": [],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -17,14 +18,16 @@
     }
   },
   "background": {
-    "service_worker": "background.bundle.js"
+    "service_worker": "background.bundle.js",
+    "type": "module"
   },
   "icons": {
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "chrome_url_overrides": {
-    "newtab": "popup.html"
-  }
+  "web_accessible_resources": [{
+    "resources": ["assets/icons/*"],
+    "matches": ["<all_urls>"]
+  }]
 } 
