@@ -2,7 +2,7 @@ export interface Task {
   id: number;
   title: string;
   description: string;
-  deadline: string;
+  deadline: Date;
   important: boolean;
   urgent: boolean;
   completed: boolean;

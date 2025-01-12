@@ -1,71 +1,92 @@
 <template>
-  <div class="grid grid-cols-2 grid-rows-2 gap-4 h-[400px]">
-    <div
-      v-for="quadrant in quadrants"
-      :key="quadrant.id"
-      :class="[
-        'p-4 rounded-lg',
-        quadrant.bgClass
-      ]"
-    >
-      <h3 class="text-lg font-semibold mb-3">{{ quadrant.title }}</h3>
-      <div class="task-list">
-        <TaskCard
-          v-for="task in getTasksByQuadrant(quadrant.id)"
+  <div class="grid grid-cols-2 gap-4 h-full">
+    <div v-for="(quadrant, index) in quadrants" :key="index" class="border rounded-lg p-4">
+      <h3 class="font-bold mb-4" :class="quadrant.titleClass">{{ quadrant.title }}</h3>
+      <div class="space-y-2">
+        <div
+          v-for="task in getQuadrantTasks(quadrant.important, quadrant.urgent)"
           :key="task.id"
-          :task="task"
-          @update="handleUpdateTask"
-          @delete="handleDeleteTask"
-        />
+          class="p-3 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+          :class="getTaskClass(task)"
+          @click="handleTaskClick(task)"
+        >
+          <div class="flex justify-between items-start">
+            <h4 class="font-medium" :class="{'line-through': task.completed}">
+              {{ task.title }}
+            </h4>
+            <button
+              @click.stop="toggleTaskStatus(task)"
+              class="text-sm px-2 py-1 rounded"
+              :class="task.completed ? 'bg-gray-200' : 'bg-green-100 text-green-800'"
+            >
+              {{ task.completed ? '已完成' : '完成' }}
+            </button>
+          </div>
+          <p class="text-sm text-gray-600 mt-1">{{ task.description }}</p>
+          <div class="text-xs text-gray-500 mt-2">
+            截止时间: {{ formatDate(task.deadline) }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { QuadrantType } from '@/types/task';
+import { computed } from 'vue';
 import { useTaskStore } from '@/stores/task';
-import TaskCard from './TaskCard.vue';
+import { formatDate } from '@/utils/date';
+import type { Task } from '@/types/task';
 
 const taskStore = useTaskStore();
 
 const quadrants = [
   {
-    id: QuadrantType.ImportantUrgent,
     title: '重要且紧急',
-    bgClass: 'bg-red-50'
+    important: true,
+    urgent: true,
+    titleClass: 'text-red-600'
   },
   {
-    id: QuadrantType.ImportantNotUrgent,
     title: '重要不紧急',
-    bgClass: 'bg-yellow-50'
+    important: true,
+    urgent: false,
+    titleClass: 'text-yellow-600'
   },
   {
-    id: QuadrantType.NotImportantUrgent,
     title: '紧急不重要',
-    bgClass: 'bg-blue-50'
+    important: false,
+    urgent: true,
+    titleClass: 'text-blue-600'
   },
   {
-    id: QuadrantType.NotImportantNotUrgent,
     title: '不重要不紧急',
-    bgClass: 'bg-green-50'
+    important: false,
+    urgent: false,
+    titleClass: 'text-green-600'
   }
 ];
 
-const getTasksByQuadrant = (quadrant: QuadrantType) => {
-  return taskStore.getTasksByQuadrant(quadrant);
+const getQuadrantTasks = (important: boolean, urgent: boolean) => {
+  return taskStore.tasks.filter(
+    task => task.important === important && task.urgent === urgent
+  );
 };
 
-const handleUpdateTask = async (task) => {
-  await taskStore.updateTask(task);
+const getTaskClass = (task: Task) => {
+  if (task.completed) return 'bg-gray-50';
+  if (task.important && task.urgent) return 'bg-red-50';
+  if (task.important) return 'bg-yellow-50';
+  if (task.urgent) return 'bg-blue-50';
+  return 'bg-green-50';
 };
 
-const handleDeleteTask = async (taskId) => {
-  await taskStore.deleteTask(taskId);
+const toggleTaskStatus = async (task: Task) => {
+  await taskStore.updateTask(task.id, { completed: !task.completed });
 };
 
-onMounted(async () => {
-  await taskStore.loadTasks();
-});
+const handleTaskClick = (task: Task) => {
+  // TODO: 实现任务编辑功能
+  console.log('编辑任务:', task);
+};
 </script> 

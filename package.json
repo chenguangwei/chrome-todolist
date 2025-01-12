@@ -7,16 +7,18 @@
     "url": "https://github.com/chenguangwei/chrome-todolist"
   },
   "scripts": {
-    "build": "node utils/build.js",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
     "build:firefox": "cross-env BROWSER=firefox yarn build",
     "build:zip": "node utils/build-zip.js",
     "build:prod": "yarn build:prod-chrome && yarn build:prod-firefox",
     "build:prod-chrome": "yarn build && yarn build:zip",
     "build:prod-firefox": "yarn build:firefox && cross-env BROWSER=firefox yarn build:zip",
-    "dev": "node utils/webserver.js",
+    "dev": "cross-env NODE_ENV=development webpack serve --config webpack.config.js",
     "dev:firefox": "cross-env BROWSER=firefox yarn dev",
     "prettier": "prettier --write '**/*.{js,jsx,css,html}'",
-    "lint": "eslint --ext .js,.vue --ignore-path .gitignore ."
+    "lint": "eslint --ext .js,.vue --ignore-path .gitignore .",
+    "clean": "rimraf build",
+    "prebuild": "npm run clean"
   },
   "engines": {
     "node": ">=14.18.1"
@@ -89,6 +91,8 @@
     "tippy.js": "^6.3.1",
     "v-remixicon": "^0.1.1",
     "vue": "^3.3.4",
+    "@vue/runtime-dom": "^3.3.4",
+    "@vue/compiler-sfc": "^3.3.4",
     "vue-i18n": "9",
     "vue-imask": "^6.4.2",
     "vue-router": "^4.2.4",
@@ -139,6 +143,14 @@
     "web-worker": "^1.2.0",
     "webpack": "5.76.0",
     "webpack-cli": "^5.0.1",
-    "webpack-dev-server": "^4.11.1"
+    "webpack-dev-server": "^4.11.1",
+    "typescript": "^4.9.5",
+    "ts-loader": "^9.4.2",
+    "@types/chrome": "^0.0.246",
+    "@types/node": "^18.15.11",
+    "@typescript-eslint/eslint-plugin": "^5.57.1",
+    "@typescript-eslint/parser": "^5.57.1",
+    "@vue/compiler-sfc": "^3.3.4",
+    "@vue/eslint-config-typescript": "^11.0.2"
   }
 }

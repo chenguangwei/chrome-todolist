@@ -1,56 +1,64 @@
 import { defineStore } from 'pinia';
-import { Task, QuadrantType } from '@/types/task';
+import { ref } from 'vue';
+import type { Task } from '@/types/task';
 
-interface TaskState {
-  tasks: Task[];
-}
+export const useTaskStore = defineStore('task', () => {
+  const tasks = ref<Task[]>([]);
 
-export const useTaskStore = defineStore('task', {
-  state: (): TaskState => ({
-    tasks: []
-  }),
+  // 从 Chrome storage 加载任务
+  const loadTasks = async () => {
+    const data = await chrome.storage.local.get('tasks');
+    tasks.value = data.tasks || [];
+  };
 
-  getters: {
-    getTasksByQuadrant: (state) => (quadrant: QuadrantType) => {
-      return state.tasks.filter(task => {
-        if (quadrant === QuadrantType.ImportantUrgent) {
-          return task.important && task.urgent;
-        } else if (quadrant === QuadrantType.ImportantNotUrgent) {
-          return task.important && !task.urgent;
-        } else if (quadrant === QuadrantType.NotImportantUrgent) {
-          return !task.important && task.urgent;
-        }
-        return !task.important && !task.urgent;
+  // 保存任务到 Chrome storage
+  const saveTasks = async () => {
+    await chrome.storage.local.set({ tasks: tasks.value });
+  };
+
+  // 添加任务
+  const addTask = async (task: Omit<Task, 'id' | 'completed' | 'createdAt'>) => {
+    const newTask: Task = {
+      ...task,
+      id: Date.now(),
+      completed: false,
+      createdAt: new Date()
+    };
+    tasks.value.push(newTask);
+    await saveTasks();
+    
+    // 设置提醒
+    if (new Date(task.deadline).getTime() > Date.now()) {
+      await chrome.alarms.create(`task-${newTask.id}`, {
+        when: new Date(task.deadline).getTime()
       });
     }
-  },
+  };
 
-  actions: {
-    async loadTasks() {
-      const data = await chrome.storage.local.get('tasks');
-      this.tasks = data.tasks || [];
-    },
-
-    async addTask(task: Task) {
-      this.tasks.push(task);
-      await this.saveTasks();
-    },
-
-    async updateTask(task: Task) {
-      const index = this.tasks.findIndex(t => t.id === task.id);
-      if (index !== -1) {
-        this.tasks[index] = task;
-        await this.saveTasks();
-      }
-    },
-
-    async deleteTask(taskId: number) {
-      this.tasks = this.tasks.filter(task => task.id !== taskId);
-      await this.saveTasks();
-    },
-
-    async saveTasks() {
-      await chrome.storage.local.set({ tasks: this.tasks });
+  // 更新任务
+  const updateTask = async (taskId: number, updates: Partial<Task>) => {
+    const index = tasks.value.findIndex(t => t.id === taskId);
+    if (index !== -1) {
+      tasks.value[index] = { ...tasks.value[index], ...updates };
+      await saveTasks();
     }
-  }
+  };
+
+  // 删除任务
+  const deleteTask = async (taskId: number) => {
+    tasks.value = tasks.value.filter(t => t.id !== taskId);
+    await saveTasks();
+    await chrome.alarms.clear(`task-${taskId}`);
+  };
+
+  // 初始化加载任务
+  loadTasks();
+
+  return {
+    tasks,
+    addTask,
+    updateTask,
+    deleteTask,
+    loadTasks
+  };
 }); 
