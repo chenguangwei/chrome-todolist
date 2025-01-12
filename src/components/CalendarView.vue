@@ -41,18 +41,29 @@
       </div>
     </div>
   </div>
+
+  <!-- 编辑对话框 -->
+  <TaskEditDialog
+    v-model:show="showEditDialog"
+    :task="editingTask"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import dayjs from 'dayjs';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import { useTaskStore } from '@/stores/task';
 import type { Task } from '@/types/task';
 import { formatDate } from '@/utils/date';
+import TaskEditDialog from './TaskEditDialog.vue';
 
 const taskStore = useTaskStore();
+
+// 添加编辑对话框相关的状态
+const showEditDialog = ref(false);
+const editingTask = ref<Task | null>(null);
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -118,7 +129,8 @@ const getTaskColorClass = (task: Task) => {
 
 // 处理任务点击
 const handleTaskClick = (task: Task) => {
-  console.log('点击任务:', task);
+  editingTask.value = task;
+  showEditDialog.value = true;
 };
 
 // 格式化任务详情

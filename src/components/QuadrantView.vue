@@ -30,15 +30,26 @@
       </div>
     </div>
   </div>
+
+  <!-- 编辑对话框 -->
+  <TaskEditDialog
+    v-model:show="showEditDialog"
+    :task="editingTask"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useTaskStore } from '@/stores/task';
 import { formatDate } from '@/utils/date';
 import type { Task } from '@/types/task';
+import TaskEditDialog from './TaskEditDialog.vue';
 
 const taskStore = useTaskStore();
+
+// 添加编辑对话框相关的状态
+const showEditDialog = ref(false);
+const editingTask = ref<Task | null>(null);
 
 const quadrants = [
   {
@@ -86,7 +97,7 @@ const toggleTaskStatus = async (task: Task) => {
 };
 
 const handleTaskClick = (task: Task) => {
-  // TODO: 实现任务编辑功能
-  console.log('编辑任务:', task);
+  editingTask.value = task;
+  showEditDialog.value = true;
 };
 </script> 
