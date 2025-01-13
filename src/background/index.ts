@@ -24,6 +24,13 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       currentTime: new Date()
     });
 
+    // 验证当前所有 alarms
+    const currentAlarms = await chrome.alarms.getAll();
+    console.log('当前所有 alarms:', currentAlarms.map(a => ({
+      name: a.name,
+      scheduledTime: new Date(a.scheduledTime)
+    })));
+
     const taskId = parseInt(alarm.name.replace('task-', ''));
     if (isNaN(taskId)) {
       console.log('无效的任务ID');
@@ -52,7 +59,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
       // 创建通知
       const notificationOptions = {
-        type: 'basic' as chrome.notifications.TemplateType,
+        type: 'basic' as const,
         iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
         title: '任务提醒',
         message: `任务"${task.title}"已到期\n${task.description || ''}`,
@@ -69,11 +76,35 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
       try {
         console.log('开始创建通知...');
-        const notificationId = await chrome.notifications.create(
-          `task-${task.id}`,
-          notificationOptions
-        );
+        // 先清除可能存在的旧通知
+        const notificationId = `task-${task.id}`;
+        await chrome.notifications.clear(notificationId);
+        console.log('已清除旧通知');
+
+        // 创建新通知
+        await new Promise<string>((resolve) => {
+          chrome.notifications.create(notificationId, notificationOptions, (id) => {
+            console.log('通知创建回调被调用，返回的ID:', id);
+            resolve(id);
+          });
+        });
         console.log('通知已创建，ID:', notificationId);
+
+        // 验证通知是否创建成功
+        setTimeout(() => {
+          chrome.notifications.getAll((notifications) => {
+            console.log('当前所有通知:', notifications);
+            const notificationExists = Object.keys(notifications).includes(notificationId);
+            if (notificationExists) {
+              console.log('通知验证成功，通知正在显示');
+            } else {
+              console.error('通知可能未正确显示，尝试重新创建');
+              chrome.notifications.create(notificationId, notificationOptions, (newId) => {
+                console.log('重新创建通知，新ID:', newId);
+              });
+            }
+          });
+        }, 1000);
       } catch (err: any) {
         console.error('创建通知失败:', err);
         console.error('错误详情:', {

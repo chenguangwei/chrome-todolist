@@ -175,8 +175,63 @@ export const useTaskStore = defineStore('task', () => {
   const updateTask = async (taskId: number, updates: Partial<Task>) => {
     const index = tasks.value.findIndex(t => t.id === taskId);
     if (index !== -1) {
-      tasks.value[index] = { ...tasks.value[index], ...updates };
+      // 保存旧的任务信息
+      const oldTask = tasks.value[index];
+      
+      // 更新任务
+      tasks.value[index] = { ...oldTask, ...updates };
       await saveTasks();
+
+      try {
+        // 如果截止时间改变了，需要重新设置提醒
+        if (updates.deadline && updates.deadline.getTime() !== oldTask.deadline.getTime()) {
+          // 清除旧的提醒
+          await chrome.alarms.clear(`task-${taskId}`);
+          console.log('已清除旧的提醒:', taskId);
+
+          // 设置新的提醒
+          const deadlineTime = new Date(updates.deadline).getTime();
+          const now = Date.now();
+          
+          if (deadlineTime > now && !tasks.value[index].completed) {
+            console.log('设置新的提醒:', {
+              taskId,
+              newDeadline: new Date(deadlineTime),
+              timeUntilDeadline: (deadlineTime - now) / 1000 / 60 + ' 分钟'
+            });
+
+            await chrome.alarms.create(`task-${taskId}`, {
+              when: deadlineTime
+            });
+
+            // 验证新提醒是否设置成功
+            const alarms = await chrome.alarms.getAll();
+            const alarm = alarms.find(a => a.name === `task-${taskId}`);
+            if (alarm) {
+              console.log('新提醒设置成功:', {
+                name: alarm.name,
+                scheduledTime: new Date(alarm.scheduledTime)
+              });
+            } else {
+              console.error('新提醒设置失败: 未找到刚创建的提醒');
+            }
+          } else {
+            console.log('不设置新提醒:', {
+              reason: deadlineTime <= now ? '截止时间已过' : '任务已完成',
+              deadline: new Date(deadlineTime),
+              completed: tasks.value[index].completed
+            });
+          }
+        }
+
+        // 如果任务状态改变为已完成，清除提醒
+        if (updates.completed && updates.completed !== oldTask.completed) {
+          await chrome.alarms.clear(`task-${taskId}`);
+          console.log('任务已完成，清除提醒:', taskId);
+        }
+      } catch (error) {
+        console.error('更新任务提醒失败:', error);
+      }
     }
   };
 
