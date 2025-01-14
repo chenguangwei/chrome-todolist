@@ -70,4 +70,13 @@ export const getStartOfDay = (date: string | Date | number): Date => {
  */
 export const getEndOfDay = (date: string | Date | number): Date => {
   return dayjs(date).endOf('day').toDate();
+};
+
+/**
+ * 判断任务是否过期
+ * @param deadline 截止时间
+ * @returns boolean
+ */
+export const isTaskExpired = (deadline: Date | string): boolean => {
+  return dayjs(deadline).isBefore(dayjs(), 'minute');
 }; 

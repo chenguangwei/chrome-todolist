@@ -13,6 +13,7 @@
           <div class="flex justify-between items-start">
             <h4 class="font-medium" :class="{'line-through': task.completed}">
               {{ task.title }}
+              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
             </h4>
             <button
               @click.stop="toggleTaskStatus(task)"
@@ -41,7 +42,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useTaskStore } from '@/stores/task';
-import { formatDate } from '@/utils/date';
+import { formatDate, isTaskExpired } from '@/utils/date';
 import type { Task } from '@/types/task';
 import TaskEditDialog from './TaskEditDialog.vue';
 
@@ -100,4 +101,24 @@ const handleTaskClick = (task: Task) => {
   editingTask.value = task;
   showEditDialog.value = true;
 };
-</script> 
+</script>
+
+<style scoped>
+.task-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expired-tag {
+  font-size: 12px;
+  color: #ff4d4f;
+  background-color: #fff1f0;
+  border: 1px solid #ffccc7;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: normal;
+}
+</style> 

@@ -35,7 +35,10 @@
             :data-task-id="task.id"
             @click="handleTaskClick(task)"
           >
-            {{ task.title }}
+            <div class="task-title">
+              {{ task.title }}
+              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
+            </div>
           </div>
         </div>
       </div>
@@ -56,7 +59,7 @@ import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import { useTaskStore } from '@/stores/task';
 import type { Task } from '@/types/task';
-import { formatDate } from '@/utils/date';
+import { formatDate, isTaskExpired } from '@/utils/date';
 import TaskEditDialog from './TaskEditDialog.vue';
 
 const taskStore = useTaskStore();
@@ -200,5 +203,23 @@ watch(() => taskStore.tasks, () => {
 
 .tippy-box[data-theme~='custom'] .tippy-content {
   padding: 0;
+}
+
+.task-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expired-tag {
+  font-size: 12px;
+  color: #ff4d4f;
+  background-color: #fff1f0;
+  border: 1px solid #ffccc7;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: normal;
 }
 </style> 
