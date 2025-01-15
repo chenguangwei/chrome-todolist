@@ -2,39 +2,11 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>时间管理助手</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 800px;
-      height: 600px;
-      overflow: hidden;
-    }
-    #app {
-      height: 100%;
-      overflow: auto;
-    }
-    /* 添加自定义滚动条样式 */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>Todo List</title>
 </head>
 <body>
   <div id="app"></div>
-  <!-- 确保这里不会有其他的 script 标签，让 webpack 来处理 -->
 </body>
 </html> 

@@ -1,16 +1,21 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
-import '../assets/tailwind.css';
+import { createAppI18n } from '@/i18n';
+import '@/assets/tailwind.css';
 
-// 创建 pinia 实例
-const pinia = createPinia();
+const init = async () => {
+  try {
+    const app = createApp(App);
+    const pinia = createPinia();
+    const i18n = await createAppI18n();
 
-// 创建 Vue 应用
-const app = createApp(App);
+    app.use(pinia);
+    app.use(i18n);
+    app.mount('#app');
+  } catch (error) {
+    console.error('应用初始化失败:', error);
+  }
+};
 
-// 使用 pinia
-app.use(pinia);
-
-// 挂载应用
-app.mount('#app'); 
+init(); 

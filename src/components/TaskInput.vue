@@ -1,129 +1,146 @@
 <template>
-  <div class="bg-white p-4 rounded-lg shadow">
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <input
-        v-model="title"
-        type="text"
-        placeholder="任务标题"
-        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+  <form @submit.prevent="handleSubmit" class="bg-white rounded-lg shadow p-4">
+    <div class="space-y-4">
+      <div>
+        <input
+          v-model="formState.title"
+          type="text"
+          :placeholder="$t('task.input.title')"
+          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+      </div>
       
-      <textarea
-        v-model="description"
-        placeholder="任务描述"
-        class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        rows="3"
-      ></textarea>
-      
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">截止日期</label>
+      <div class="flex items-center gap-8">
+        <div class="w-2/5">
           <input
-            v-model="deadline"
+            v-model="formState.deadline"
             type="datetime-local"
-            class="mt-1 w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
           />
+          <div class="text-xs text-gray-500 mt-1">{{ $t('task.input.deadline') }}</div>
         </div>
-        
-        <div class="space-y-2">
-          <label class="flex items-center space-x-2">
+
+        <div class="flex-1 flex items-center justify-around">
+          <label class="relative flex items-center group">
             <input
-              v-model="important"
+              v-model="formState.important"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              class="sr-only peer"
             />
-            <span class="text-sm font-medium text-gray-700">重要</span>
+            <div class="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+            <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+              {{ $t('task.input.important') }}
+            </span>
           </label>
           
-          <label class="flex items-center space-x-2">
+          <label class="relative flex items-center group">
             <input
-              v-model="urgent"
+              v-model="formState.urgent"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              class="sr-only peer"
             />
-            <span class="text-sm font-medium text-gray-700">紧急</span>
+            <div class="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+            <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+              {{ $t('task.input.urgent') }}
+            </span>
           </label>
         </div>
       </div>
       
-      <button
-        type="submit"
-        class="w-full px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-      >
-        添加任务
-      </button>
-    </form>
-  </div>
+      <div>
+        <textarea
+          v-model="formState.description"
+          :placeholder="$t('task.input.description')"
+          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 h-20 resize-none"
+        ></textarea>
+      </div>
+      
+      <div class="flex justify-end">
+        <button
+          type="submit"
+          class="w-full px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium text-sm"
+        >
+          {{ $t('task.input.addButton') }}
+        </button>
+      </div>
+    </div>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/task';
+import dayjs from 'dayjs';
 
 const taskStore = useTaskStore();
 
-const title = ref('');
-const description = ref('');
-const deadline = ref('');
-const important = ref(false);
-const urgent = ref(false);
+interface FormState {
+  title: string;
+  description: string;
+  deadline: string;
+  important: boolean;
+  urgent: boolean;
+}
 
-// 加载表单状态
+const formState = ref<FormState>({
+  title: '',
+  description: '',
+  deadline: dayjs().format('YYYY-MM-DDTHH:mm'),
+  important: false,
+  urgent: false
+});
+
+const emit = defineEmits(['submit']);
+
+const handleSubmit = async () => {
+  await taskStore.addTask({
+    title: formState.value.title,
+    description: formState.value.description,
+    deadline: new Date(formState.value.deadline).getTime(),
+    important: formState.value.important,
+    urgent: formState.value.urgent,
+    completed: false
+  });
+
+  // 重置表单
+  formState.value = {
+    title: '',
+    description: '',
+    deadline: dayjs().format('YYYY-MM-DDTHH:mm'),
+    important: false,
+    urgent: false
+  };
+
+  // 发出提交事件
+  emit('submit');
+};
+
+// 加载上次未完成的表单数据
 onMounted(async () => {
   try {
-    console.log('TaskInput mounted');
-    const data = await chrome.storage.local.get('taskForm');
-    if (data.taskForm) {
-      console.log('加载表单状态:', data.taskForm);
-      title.value = data.taskForm.title || '';
-      description.value = data.taskForm.description || '';
-      deadline.value = data.taskForm.deadline || '';
-      important.value = data.taskForm.important || false;
-      urgent.value = data.taskForm.urgent || false;
+    const result = await chrome.storage.local.get('taskForm');
+    if (result.taskForm) {
+      formState.value = {
+        ...formState.value,
+        ...result.taskForm
+      };
     }
   } catch (error) {
-    console.error('加载表单状态失败:', error);
+    console.error('加载表单数据失败:', error);
   }
 });
 
-// 监听表单变化并保存状态
-watch([title, description, deadline, important, urgent], async () => {
+// 自动保存表单数据
+const saveFormState = async () => {
   try {
-    const formState = {
-      title: title.value,
-      description: description.value,
-      deadline: deadline.value,
-      important: important.value,
-      urgent: urgent.value
-    };
-    await chrome.storage.local.set({ taskForm: formState });
+    await chrome.storage.local.set({ taskForm: formState.value });
   } catch (error) {
-    console.error('保存表单状态失败:', error);
+    console.error('保存表单数据失败:', error);
   }
-}, { deep: true });
-
-const handleSubmit = async () => {
-  if (!title.value || !deadline.value) {
-    alert('请填写任务标题和截止时间！');
-    return;
-  }
-
-  await taskStore.addTask({
-    title: title.value,
-    description: description.value,
-    deadline: new Date(deadline.value),
-    important: important.value,
-    urgent: urgent.value
-  });
-
-  // 清空表单
-  title.value = '';
-  description.value = '';
-  deadline.value = '';
-  important.value = false;
-  urgent.value = false;
-  
-  // 清除存储的表单状态
-  await chrome.storage.local.remove('taskForm');
 };
+
+// 监听表单变化并保存
+watch(formState, saveFormState, { deep: true });
 </script> 

@@ -1,75 +1,84 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-md">
-      <h3 class="text-lg font-bold mb-4">编辑任务</h3>
+      <h3 class="text-lg font-bold mb-4">{{ $t('task.edit.title') }}</h3>
       
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <input
-          v-model="form.title"
-          type="text"
-          placeholder="任务标题"
-          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div>
+          <input
+            v-model="formState.title"
+            type="text"
+            :placeholder="$t('task.input.title')"
+            class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
         
-        <textarea
-          v-model="form.description"
-          placeholder="任务描述"
-          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows="3"
-        ></textarea>
+        <div>
+          <textarea
+            v-model="formState.description"
+            :placeholder="$t('task.input.description')"
+            class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+          ></textarea>
+        </div>
         
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">截止日期</label>
+        <div class="flex items-center space-x-4">
+          <div class="flex-1">
             <input
-              v-model="form.deadline"
+              v-model="formState.deadline"
               type="datetime-local"
-              class="mt-1 w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             />
+            <div class="text-xs text-gray-500 mt-1">{{ $t('task.input.deadline') }}</div>
           </div>
           
-          <div class="space-y-2">
+          <div class="flex items-center space-x-4">
             <label class="flex items-center space-x-2">
               <input
-                v-model="form.important"
+                v-model="formState.important"
                 type="checkbox"
-                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                class="form-checkbox h-4 w-4 text-blue-500"
               />
-              <span class="text-sm font-medium text-gray-700">重要</span>
+              <span>{{ $t('task.input.important') }}</span>
             </label>
             
             <label class="flex items-center space-x-2">
               <input
-                v-model="form.urgent"
+                v-model="formState.urgent"
                 type="checkbox"
-                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                class="form-checkbox h-4 w-4 text-blue-500"
               />
-              <span class="text-sm font-medium text-gray-700">紧急</span>
+              <span>{{ $t('task.input.urgent') }}</span>
             </label>
           </div>
         </div>
         
-        <div class="flex justify-end space-x-2 mt-6">
+        <div class="flex justify-between pt-4">
           <button
             type="button"
             @click="handleDelete"
-            class="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
           >
-            删除
+            {{ $t('task.edit.delete') }}
           </button>
-          <button
-            type="button"
-            @click="handleCancel"
-            class="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-          >
-            取消
-          </button>
-          <button
-            type="submit"
-            class="px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            保存
-          </button>
+          
+          <div class="space-x-2">
+            <button
+              type="button"
+              @click="$emit('update:show', false)"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+            >
+              {{ $t('task.edit.cancel') }}
+            </button>
+            
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              {{ $t('task.edit.save') }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -89,12 +98,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:show', value: boolean): void;
-  (e: 'deleted'): void;
 }>();
 
 const taskStore = useTaskStore();
 
-const form = ref({
+interface FormState {
+  title: string;
+  description: string;
+  deadline: string;
+  important: boolean;
+  urgent: boolean;
+}
+
+const formState = ref<FormState>({
   title: '',
   description: '',
   deadline: '',
@@ -102,10 +118,10 @@ const form = ref({
   urgent: false
 });
 
-// 监听任务变化，更新表单
+// 监听 task 变化，更新表单状态
 watch(() => props.task, (newTask) => {
   if (newTask) {
-    form.value = {
+    formState.value = {
       title: newTask.title,
       description: newTask.description,
       deadline: dayjs(newTask.deadline).format('YYYY-MM-DDTHH:mm'),
@@ -116,29 +132,23 @@ watch(() => props.task, (newTask) => {
 }, { immediate: true });
 
 const handleSubmit = async () => {
-  if (!props.task || !form.value.title || !form.value.deadline) {
-    return;
-  }
-
+  if (!props.task) return;
+  
   await taskStore.updateTask(props.task.id, {
-    ...form.value,
-    deadline: new Date(form.value.deadline)
+    title: formState.value.title,
+    description: formState.value.description,
+    deadline: new Date(formState.value.deadline).getTime(),
+    important: formState.value.important,
+    urgent: formState.value.urgent
   });
-
-  emit('update:show', false);
-};
-
-const handleCancel = () => {
+  
   emit('update:show', false);
 };
 
 const handleDelete = async () => {
-  if (!props.task) return;
+  if (!props.task || !confirm(t('task.edit.confirmDelete'))) return;
   
-  if (confirm('确定要删除这个任务吗？')) {
-    await taskStore.deleteTask(props.task.id);
-    emit('update:show', false);
-    emit('deleted');
-  }
+  await taskStore.deleteTask(props.task.id);
+  emit('update:show', false);
 };
 </script> 

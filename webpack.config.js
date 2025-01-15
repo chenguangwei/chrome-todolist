@@ -20,28 +20,70 @@ module.exports = {
     path: path.resolve(__dirname, 'build'),
     filename: '[name].bundle.js',
     clean: true,
-    publicPath: '/'
+    publicPath: './'
   },
   resolve: {
     extensions: ['.ts', '.js', '.vue', '.json'],
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      'vue': '@vue/runtime-dom'
+      'vue': '@vue/runtime-dom',
+      'vue-i18n': path.resolve(__dirname, 'node_modules/vue-i18n/dist/vue-i18n.runtime.esm-bundler.js'),
+      '@components': path.resolve(__dirname, 'src/components'),
+      '@assets': path.resolve(__dirname, 'src/assets'),
+      '@stores': path.resolve(__dirname, 'src/stores'),
+      '@locales': path.resolve(__dirname, 'src/locales')
     }
   },
   module: {
     rules: [
       {
         test: /\.vue$/,
-        loader: 'vue-loader'
+        loader: 'vue-loader',
+        options: {
+          compilerOptions: {
+            isCustomElement: tag => tag.startsWith('chrome-'),
+            whitespace: 'condense',
+            comments: false,
+            hoistStatic: true,
+            prefixIdentifiers: true,
+            optimize: true
+          },
+          hotReload: false,
+          runtimeCompiler: false,
+          productionMode: true,
+          sourceMap: !isProd
+        }
       },
       {
         test: /\.tsx?$/,
-        loader: 'ts-loader',
-        options: {
-          appendTsSuffixTo: [/\.vue$/],
-          transpileOnly: true
-        },
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', { modules: false }],
+                '@babel/preset-typescript'
+              ],
+              plugins: [
+                '@babel/plugin-transform-runtime',
+                '@vue/babel-plugin-jsx'
+              ]
+            }
+          },
+          {
+            loader: 'ts-loader',
+            options: {
+              appendTsSuffixTo: [/\.vue$/],
+              transpileOnly: true,
+              compilerOptions: {
+                module: 'esnext',
+                target: 'es2015',
+                isolatedModules: true,
+                noEmitOnError: true
+              }
+            }
+          }
+        ],
         exclude: /node_modules/
       },
       {
@@ -51,14 +93,24 @@ module.exports = {
           'css-loader',
           'postcss-loader'
         ]
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'assets/images/[name][ext]'
+        }
       }
     ]
   },
   plugins: [
     new webpack.DefinePlugin({
-      __VUE_OPTIONS_API__: true,
-      __VUE_PROD_DEVTOOLS__: !isProd,
-      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: !isProd,
+      __VUE_OPTIONS_API__: false,
+      __VUE_PROD_DEVTOOLS__: false,
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+      __VUE_I18N_FULL_INSTALL__: false,
+      __VUE_I18N_LEGACY_API__: false,
+      __INTLIFY_PROD_DEVTOOLS__: false,
       'process.env': {
         NODE_ENV: JSON.stringify(NODE_ENV)
       }
@@ -72,7 +124,12 @@ module.exports = {
       template: path.join(__dirname, 'src', 'popup', 'index.html'),
       filename: 'popup.html',
       chunks: ['popup'],
-      inject: true
+      inject: true,
+      minify: isProd ? {
+        removeComments: true,
+        collapseWhitespace: true,
+        removeAttributeQuotes: true
+      } : false
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -102,6 +159,13 @@ module.exports = {
           chunks: 'all'
         }
       }
-    }
+    },
+    runtimeChunk: false,
+    minimize: isProd,
+    moduleIds: 'deterministic'
+  },
+  devtool: isProd ? false : 'source-map',
+  performance: {
+    hints: false
   }
 };

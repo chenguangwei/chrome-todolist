@@ -1,124 +1,63 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 h-full">
-    <div v-for="(quadrant, index) in quadrants" :key="index" class="border rounded-lg p-4">
-      <h3 class="font-bold mb-4" :class="quadrant.titleClass">{{ quadrant.title }}</h3>
-      <div class="space-y-2">
-        <div
-          v-for="task in getQuadrantTasks(quadrant.important, quadrant.urgent)"
-          :key="task.id"
-          class="p-3 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-          :class="getTaskClass(task)"
-          @click="handleTaskClick(task)"
-        >
-          <div class="flex justify-between items-start">
-            <h4 class="font-medium" :class="{'line-through': task.completed}">
-              {{ task.title }}
-              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
-            </h4>
-            <button
-              @click.stop="toggleTaskStatus(task)"
-              class="text-sm px-2 py-1 rounded"
-              :class="task.completed ? 'bg-gray-200' : 'bg-green-100 text-green-800'"
-            >
-              {{ task.completed ? '已完成' : '未完成' }}
-            </button>
-          </div>
-          <p class="text-sm text-gray-600 mt-1">{{ task.description }}</p>
-          <div class="text-xs text-gray-500 mt-2">
-            截止时间: {{ formatDate(task.deadline) }}
-          </div>
-        </div>
-      </div>
+  <div class="grid grid-cols-2 gap-6 p-6">
+    <!-- 重要且紧急 -->
+    <div class="bg-gradient-to-br from-red-50 to-white p-4 rounded-lg border border-red-100">
+      <h3 class="text-lg font-bold mb-4 text-red-700 flex items-center">
+        <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+        {{ $t('task.quadrant.importantUrgent') }}
+      </h3>
+      <TaskList :tasks="importantUrgentTasks" />
+    </div>
+
+    <!-- 重要不紧急 -->
+    <div class="bg-gradient-to-br from-yellow-50 to-white p-4 rounded-lg border border-yellow-100">
+      <h3 class="text-lg font-bold mb-4 text-yellow-700 flex items-center">
+        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+        {{ $t('task.quadrant.importantNotUrgent') }}
+      </h3>
+      <TaskList :tasks="importantNotUrgentTasks" />
+    </div>
+
+    <!-- 紧急不重要 -->
+    <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-lg border border-blue-100">
+      <h3 class="text-lg font-bold mb-4 text-blue-700 flex items-center">
+        <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+        {{ $t('task.quadrant.notImportantUrgent') }}
+      </h3>
+      <TaskList :tasks="notImportantUrgentTasks" />
+    </div>
+
+    <!-- 不重要不紧急 -->
+    <div class="bg-gradient-to-br from-gray-50 to-white p-4 rounded-lg border border-gray-100">
+      <h3 class="text-lg font-bold mb-4 text-gray-700 flex items-center">
+        <span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+        {{ $t('task.quadrant.notImportantNotUrgent') }}
+      </h3>
+      <TaskList :tasks="notImportantNotUrgentTasks" />
     </div>
   </div>
-
-  <!-- 编辑对话框 -->
-  <TaskEditDialog
-    v-model:show="showEditDialog"
-    :task="editingTask"
-  />
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useTaskStore } from '@/stores/task';
-import { formatDate, isTaskExpired } from '@/utils/date';
-import type { Task } from '@/types/task';
-import TaskEditDialog from './TaskEditDialog.vue';
+import TaskList from './TaskList.vue';
 
 const taskStore = useTaskStore();
 
-// 添加编辑对话框相关的状态
-const showEditDialog = ref(false);
-const editingTask = ref<Task | null>(null);
+const importantUrgentTasks = computed(() => 
+  taskStore.tasks.filter(task => task.important && task.urgent)
+);
 
-const quadrants = [
-  {
-    title: '重要且紧急',
-    important: true,
-    urgent: true,
-    titleClass: 'text-red-600'
-  },
-  {
-    title: '重要不紧急',
-    important: true,
-    urgent: false,
-    titleClass: 'text-yellow-600'
-  },
-  {
-    title: '紧急不重要',
-    important: false,
-    urgent: true,
-    titleClass: 'text-blue-600'
-  },
-  {
-    title: '不重要不紧急',
-    important: false,
-    urgent: false,
-    titleClass: 'text-green-600'
-  }
-];
+const importantNotUrgentTasks = computed(() => 
+  taskStore.tasks.filter(task => task.important && !task.urgent)
+);
 
-const getQuadrantTasks = (important: boolean, urgent: boolean) => {
-  return taskStore.tasks.filter(
-    task => task.important === important && task.urgent === urgent
-  );
-};
+const notImportantUrgentTasks = computed(() => 
+  taskStore.tasks.filter(task => !task.important && task.urgent)
+);
 
-const getTaskClass = (task: Task) => {
-  if (task.completed) return 'bg-gray-50';
-  if (task.important && task.urgent) return 'bg-red-50';
-  if (task.important) return 'bg-yellow-50';
-  if (task.urgent) return 'bg-blue-50';
-  return 'bg-green-50';
-};
-
-const toggleTaskStatus = async (task: Task) => {
-  await taskStore.updateTask(task.id, { completed: !task.completed });
-};
-
-const handleTaskClick = (task: Task) => {
-  editingTask.value = task;
-  showEditDialog.value = true;
-};
-</script>
-
-<style scoped>
-.task-title {
-  font-weight: bold;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.expired-tag {
-  font-size: 12px;
-  color: #ff4d4f;
-  background-color: #fff1f0;
-  border: 1px solid #ffccc7;
-  padding: 0 6px;
-  border-radius: 4px;
-  font-weight: normal;
-}
-</style> 
+const notImportantNotUrgentTasks = computed(() => 
+  taskStore.tasks.filter(task => !task.important && !task.urgent)
+);
+</script> 

@@ -1,43 +1,120 @@
 <template>
-  <div class="h-full flex flex-col">
-    <div class="grid grid-cols-7 gap-1 mb-4">
-      <div v-for="day in weekDays" :key="day" class="text-center font-bold p-2">
-        {{ day }}
+  <div class="p-6">
+    <!-- 月份和年份显示 -->
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-gray-800">
+        {{ currentDate.format('YYYY年 M月') }}
+      </h2>
+      <div class="flex space-x-2">
+        <button
+          @click="changeMonth(-1)"
+          class="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          @click="changeMonth(1)"
+          class="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
-    
-    <div class="flex-1 grid grid-cols-7 gap-1 overflow-auto">
+
+    <div class="grid grid-cols-7 gap-4">
+      <!-- 星期标题 -->
       <div
-        v-for="date in calendarDays"
-        :key="date.date"
-        :class="[
-          'p-2 min-h-[100px] border rounded',
-          isToday(date.date) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
-        ]"
+        v-for="day in weekDays"
+        :key="day"
+        class="text-center font-medium text-gray-600 pb-2"
       >
-        <div class="flex justify-between items-center mb-2">
-          <span :class="{'text-blue-600 font-bold': isToday(date.date)}">
-            {{ date.dayOfMonth }}
-          </span>
-          <span class="text-xs text-gray-500">
-            {{ getTaskCount(date.date) }}个任务
-          </span>
+        {{ day }}
+      </div>
+      
+      <!-- 日历格子 -->
+      <div
+        v-for="date in calendarDates"
+        :key="date.toISOString()"
+        class="bg-white border rounded-lg shadow-sm transition-all hover:shadow-md relative"
+        :class="{
+          'bg-gray-50/50': !isCurrentMonth(date),
+          'ring-2 ring-blue-500 ring-offset-2': isToday(date)
+        }"
+      >
+        <div class="p-2 border-b bg-gradient-to-b from-gray-50">
+          <div class="flex justify-between items-center">
+            <span 
+              class="text-sm font-medium" 
+              :class="{ 
+                'text-gray-400': !isCurrentMonth(date),
+                'text-blue-600': isToday(date)
+              }"
+            >
+              {{ formatDateNumber(date) }}
+            </span>
+            <span 
+              v-if="getDateTasks(date).length > 0" 
+              class="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full font-medium"
+            >
+              {{ getDateTasks(date).length }}
+            </span>
+          </div>
         </div>
         
-        <div class="space-y-1">
+        <div class="p-2 space-y-1 min-h-[80px] max-h-[120px] overflow-y-auto">
           <div
-            v-for="task in getDateTasks(date.date)"
+            v-for="task in getDateTasks(date)"
             :key="task.id"
-            :class="[
-              'task-item text-xs p-1 rounded cursor-pointer truncate',
-              getTaskColorClass(task)
-            ]"
-            :data-task-id="task.id"
-            @click="handleTaskClick(task)"
+            class="group relative"
           >
-            <div class="task-title">
-              {{ task.title }}
-              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
+            <!-- 任务标题条 -->
+            <div
+              @click="handleTaskClick(task)"
+              class="text-sm px-2 py-1.5 rounded cursor-pointer transition-all hover:translate-x-0.5 flex items-center gap-1"
+              :class="{
+                'bg-red-50 text-red-800 hover:bg-red-100 border border-red-100': task.important && task.urgent,
+                'bg-yellow-50 text-yellow-800 hover:bg-yellow-100 border border-yellow-100': task.important && !task.urgent,
+                'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-100': !task.important && task.urgent,
+                'bg-gray-50 text-gray-800 hover:bg-gray-100 border border-gray-100': !task.important && !task.urgent,
+                'opacity-60': task.completed
+              }"
+            >
+              <span class="truncate flex-1" :class="{ 'line-through': task.completed }">{{ task.title }}</span>
+              <span 
+                v-if="task.completed" 
+                class="flex-shrink-0 text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full"
+              >
+                {{ $t('task.status.completed') }}
+              </span>
+            </div>
+
+            <!-- 悬浮提示框 -->
+            <div 
+              class="absolute left-0 top-full mt-1 z-10 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-3 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200"
+            >
+              <div class="text-sm font-medium mb-1">{{ task.title }}</div>
+              <div class="text-xs text-gray-600 mb-2">
+                {{ dayjs(task.deadline).format('YYYY-MM-DD HH:mm') }}
+              </div>
+              <div class="text-xs text-gray-600 line-clamp-3">{{ task.description || '暂无描述' }}</div>
+              <div class="flex gap-2 mt-2">
+                <span 
+                  v-if="task.important" 
+                  class="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-full"
+                >
+                  {{ $t('task.input.important') }}
+                </span>
+                <span 
+                  v-if="task.urgent" 
+                  class="text-xs px-2 py-0.5 bg-yellow-50 text-yellow-600 rounded-full"
+                >
+                  {{ $t('task.input.urgent') }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -45,7 +122,6 @@
     </div>
   </div>
 
-  <!-- 编辑对话框 -->
   <TaskEditDialog
     v-model:show="showEditDialog"
     :task="editingTask"
@@ -53,81 +129,58 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 import dayjs from 'dayjs';
-import tippy from 'tippy.js';
-import 'tippy.js/dist/tippy.css';
 import { useTaskStore } from '@/stores/task';
 import type { Task } from '@/types/task';
-import { formatDate, isTaskExpired } from '@/utils/date';
 import TaskEditDialog from './TaskEditDialog.vue';
 
 const taskStore = useTaskStore();
-
-// 添加编辑对话框相关的状态
 const showEditDialog = ref(false);
 const editingTask = ref<Task | null>(null);
+const currentDate = ref(dayjs());
 
+// 星期标题
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
-const today = dayjs();
-const startOfMonth = today.startOf('month');
-const endOfMonth = today.endOf('month');
-
-// 生成日历数据
-const calendarDays = computed(() => {
-  const days = [];
-  let current = startOfMonth.startOf('week');
-  const end = endOfMonth.endOf('week');
-
-  while (current.isBefore(end)) {
-    days.push({
-      date: current.toDate(),
-      dayOfMonth: current.date(),
-      isCurrentMonth: current.month() === today.month()
-    });
-    current = current.add(1, 'day');
-  }
+// 生成日历日期数组
+const calendarDates = computed(() => {
+  const startOfMonth = currentDate.value.startOf('month');
+  const startOfCalendar = startOfMonth.startOf('week');
   
-  return days;
+  const dates: Date[] = [];
+  for (let i = 0; i < 42; i++) {
+    dates.push(startOfCalendar.add(i, 'day').toDate());
+  }
+  return dates;
 });
 
-// 判断是否是今天
-const isToday = (date: Date) => {
-  return dayjs(date).isSame(today, 'day');
+// 切换月份
+const changeMonth = (delta: number) => {
+  currentDate.value = currentDate.value.add(delta, 'month');
 };
 
 // 获取指定日期的任务
 const getDateTasks = (date: Date) => {
-  console.log('正在获取日期的任务:', dayjs(date).format('YYYY-MM-DD'));
-  const tasks = taskStore.tasks.filter(task => {
+  return taskStore.tasks.filter(task => {
     const taskDate = dayjs(task.deadline);
-    const compareDate = dayjs(date);
-    const isSameDay = taskDate.format('YYYY-MM-DD') === compareDate.format('YYYY-MM-DD');
-    console.log('比较任务:', {
-      taskTitle: task.title,
-      taskDate: taskDate.format('YYYY-MM-DD HH:mm:ss'),
-      compareDate: compareDate.format('YYYY-MM-DD'),
-      isSameDay
-    });
-    return isSameDay;
+    return taskDate.format('YYYY-MM-DD') === dayjs(date).format('YYYY-MM-DD');
   });
-  console.log('找到的任务:', tasks);
-  return tasks;
 };
 
-// 获取任务数量
-const getTaskCount = (date: Date) => {
-  return getDateTasks(date).length;
+// 格式化日期数字
+const formatDateNumber = (date: Date) => {
+  return dayjs(date).format('D');
 };
 
-// 获取任务颜色类名
-const getTaskColorClass = (task: Task) => {
-  if (task.completed) return 'bg-gray-100 text-gray-500 line-through';
-  if (task.important && task.urgent) return 'bg-red-100 text-red-800';
-  if (task.important) return 'bg-yellow-100 text-yellow-800';
-  if (task.urgent) return 'bg-blue-100 text-blue-800';
-  return 'bg-green-100 text-green-800';
+// 判断是否是当前月份
+const isCurrentMonth = (date: Date) => {
+  return dayjs(date).month() === currentDate.value.month();
+};
+
+// 判断是否是今天
+const isToday = (date: Date) => {
+  return dayjs(date).format('YYYY-MM-DD') === dayjs().format('YYYY-MM-DD');
 };
 
 // 处理任务点击
@@ -135,91 +188,29 @@ const handleTaskClick = (task: Task) => {
   editingTask.value = task;
   showEditDialog.value = true;
 };
+</script>
 
-// 格式化任务详情
-const formatTaskDetails = (task: Task) => {
-  return `
-    <div class="p-2">
-      <div class="font-bold mb-1">${task.title}</div>
-      <div class="text-sm mb-1">${task.description || '无描述'}</div>
-      <div class="text-xs text-gray-500">
-        截止时间: ${formatDate(task.deadline)}
-        <br>
-        优先级: ${task.important ? '重要' : '不重要'}${task.urgent ? '且紧急' : '不紧急'}
-        <br>
-        状态: ${task.completed ? '已完成' : '未完成'}
-      </div>
-    </div>
-  `;
-};
-
-// 初始化提示
-const initTooltips = () => {
-  const taskElements = document.querySelectorAll('.task-item');
-  taskElements.forEach(element => {
-    const taskId = element.getAttribute('data-task-id');
-    const task = taskStore.tasks.find(t => t.id === Number(taskId));
-    if (task) {
-      tippy(element, {
-        content: formatTaskDetails(task),
-        allowHTML: true,
-        placement: 'right',
-        interactive: true,
-        theme: 'custom',
-        delay: [200, 0], // 显示延迟200ms，隐藏无延迟
-        maxWidth: 300
-      });
-    }
-  });
-};
-
-// 在组件挂载和任务更新时初始化提示
-onMounted(() => {
-  console.log('日历视图加载，当前任务列表:', taskStore.tasks);
-  // 等待DOM更新后初始化提示
-  setTimeout(initTooltips, 0);
-});
-
-// 监听任务变化
-watch(() => taskStore.tasks, () => {
-  // 等待DOM更新后重新初始化提示
-  setTimeout(initTooltips, 0);
-}, { deep: true });
-</script> 
-
-<style>
-/* 自定义提示样式 */
-.tippy-box[data-theme~='custom'] {
-  background-color: white;
-  color: black;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+<style scoped>
+/* 自定义滚动条样式 */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
 }
 
-.tippy-box[data-theme~='custom'] .tippy-arrow {
-  color: white;
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.tippy-box[data-theme~='custom'] .tippy-content {
-  padding: 0;
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 2px;
 }
 
-.task-title {
-  font-weight: bold;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
 }
 
-.expired-tag {
-  font-size: 12px;
-  color: #ff4d4f;
-  background-color: #fff1f0;
-  border: 1px solid #ffccc7;
-  padding: 0 6px;
-  border-radius: 4px;
-  font-weight: normal;
+/* 确保悬浮提示框在滚动容器之上 */
+.group:hover {
+  z-index: 20;
 }
 </style> 
