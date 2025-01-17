@@ -1,16 +1,12 @@
 /// <reference types="chrome"/>
-import { NotificationManager } from '../components/Notification';
 import type { Task } from '@/types/task';
 
 // 从 storage 获取任务列表
 const getTasks = async (): Promise<Task[]> => {
   try {
-    console.log('background: 开始获取任务...');
     const result = await chrome.storage.local.get('tasks');
-    console.log('background: 获取到的数据:', result);
     return Array.isArray(result.tasks) ? result.tasks : [];
   } catch (error) {
-    console.error('background: 获取任务失败:', error);
     return [];
   }
 };
@@ -18,111 +14,29 @@ const getTasks = async (): Promise<Task[]> => {
 // 监听定时器触发
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   try {
-    console.log('收到 alarm 事件:', {
-      name: alarm.name,
-      scheduledTime: new Date(alarm.scheduledTime),
-      currentTime: new Date()
-    });
-
-    // 验证当前所有 alarms
-    const currentAlarms = await chrome.alarms.getAll();
-    console.log('当前所有 alarms:', currentAlarms.map(a => ({
-      name: a.name,
-      scheduledTime: new Date(a.scheduledTime)
-    })));
-
     const taskId = parseInt(alarm.name.replace('task-', ''));
-    if (isNaN(taskId)) {
-      console.log('无效的任务ID');
-      return;
-    }
+    if (isNaN(taskId)) return;
 
     const tasks = await getTasks();
-    console.log('获取到的所有任务:', tasks);
     const task = tasks.find(t => t.id === taskId);
-    console.log('找到的任务:', task);
     
     if (task && !task.completed) {
-      console.log('准备显示通知:', task);
-      
-      // 检查通知权限
-      const permission = await chrome.permissions.contains({
-        permissions: ['notifications']
-      });
-      
-      console.log('通知权限状态:', permission);
-      
-      if (!permission) {
-        console.error('没有通知权限，请在 Chrome 设置中允许通知');
-        return;
-      }
-
-      // 创建通知
-      const notificationOptions = {
-        type: 'basic' as const,
-        iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
+      const notificationId = `task-${task.id}`;
+      await chrome.notifications.create(notificationId, {
+        type: 'basic',
+        iconUrl: '/assets/icons/icon128.png',
         title: '任务提醒',
-        message: `任务"${task.title}"已到期\n${task.description || ''}`,
+        message: `${task.title}\n${task.description || ''}`,
         buttons: [
           { title: '完成任务' },
-          { title: '稍后提醒(15分钟)' }
+          { title: '稍后提醒' }
         ],
         requireInteraction: true,
-        priority: 2,
-        silent: false
-      };
-
-      console.log('通知选项:', notificationOptions);
-
-      try {
-        console.log('开始创建通知...');
-        // 先清除可能存在的旧通知
-        const notificationId = `task-${task.id}`;
-        await chrome.notifications.clear(notificationId);
-        console.log('已清除旧通知');
-
-        // 创建新通知
-        await new Promise<string>((resolve) => {
-          chrome.notifications.create(notificationId, notificationOptions, (id) => {
-            console.log('通知创建回调被调用，返回的ID:', id);
-            resolve(id);
-          });
-        });
-        console.log('通知已创建，ID:', notificationId);
-
-        // 验证通知是否创建成功
-        setTimeout(() => {
-          chrome.notifications.getAll((notifications) => {
-            console.log('当前所有通知:', notifications);
-            const notificationExists = Object.keys(notifications).includes(notificationId);
-            if (notificationExists) {
-              console.log('通知验证成功，通知正在显示');
-            } else {
-              console.error('通知可能未正确显示，尝试重新创建');
-              chrome.notifications.create(notificationId, notificationOptions, (newId) => {
-                console.log('重新创建通知，新ID:', newId);
-              });
-            }
-          });
-        }, 1000);
-      } catch (err: any) {
-        console.error('创建通知失败:', err);
-        console.error('错误详情:', {
-          name: err.name,
-          message: err.message,
-          stack: err.stack
-        });
-      }
-    } else {
-      console.log('任务不存在或已完成:', taskId);
+        priority: 2
+      });
     }
-  } catch (err: any) {
-    console.error('处理提醒失败:', err);
-    console.error('错误详情:', {
-      name: err.name,
-      message: err.message,
-      stack: err.stack
-    });
+  } catch (error) {
+    // 静默处理错误
   }
 });
 
@@ -146,23 +60,17 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
       }
     }
   } catch (error) {
-    console.error('处理通知按钮点击失败:', error);
+    // 静默处理错误
   }
 });
 
 // 在扩展启动时检查所有 alarms
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    console.log('扩展启动，检查所有提醒...');
-    const alarms = await chrome.alarms.getAll();
-    console.log('当前所有提醒:', alarms);
-
-    // 获取所有任务
     const tasks = await getTasks();
-    console.log('当前所有任务:', tasks);
+    const now = Date.now();
 
     // 重新设置未完成任务的提醒
-    const now = Date.now();
     for (const task of tasks) {
       if (!task.completed) {
         const deadline = new Date(task.deadline).getTime();
@@ -170,28 +78,20 @@ chrome.runtime.onStartup.addListener(async () => {
           await chrome.alarms.create(`task-${task.id}`, {
             when: deadline
           });
-          console.log('重新设置提醒:', {
-            taskId: task.id,
-            deadline: new Date(deadline)
-          });
         }
       }
     }
   } catch (error) {
-    console.error('启动时检查提醒失败:', error);
+    // 静默处理错误
   }
 });
 
 // 安装/更新时的处理
-chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('扩展已安装/更新:', details.reason);
+chrome.runtime.onInstalled.addListener(async () => {
   try {
     // 初始化存储
     const result = await chrome.storage.local.get('tasks');
-    console.log('当前存储的数据:', result);
-    
     if (!result.tasks) {
-      console.log('初始化任务列表...');
       await chrome.storage.local.set({ tasks: [] });
     }
     
@@ -206,11 +106,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
           await chrome.alarms.create(`task-${task.id}`, {
             when: deadline
           });
-          console.log('重新设置提醒:', task.id, new Date(deadline));
         }
       }
     }
   } catch (error) {
-    console.error('初始化失败:', error);
+    // 静默处理错误
   }
 }); 

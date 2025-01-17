@@ -1,74 +1,78 @@
 <template>
-  <div class="h-full flex flex-col bg-white p-6">
+  <div class="h-full flex flex-col bg-white">
     <!-- 月份导航 -->
-    <div class="flex justify-between items-center mb-6 px-2">
-      <div class="flex items-center gap-4">
-        <h2 class="text-xl font-medium">{{ currentMonth }}</h2>
+    <div class="flex justify-between items-center px-4 py-3 border-b">
+      <h2 class="text-2xl font-normal">{{ currentMonth }}</h2>
+      <div class="flex items-center gap-2">
         <button 
           @click="backToToday"
-          class="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
+          class="px-3 py-1 text-sm border rounded hover:bg-gray-50"
         >
           今天
         </button>
-      </div>
-      <div class="flex items-center gap-2">
         <button 
           @click="previousMonth"
-          class="w-8 h-8 flex items-center justify-center text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 border rounded"
         >
           ‹
         </button>
         <button 
           @click="nextMonth"
-          class="w-8 h-8 flex items-center justify-center text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+          class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-50 border rounded"
         >
           ›
         </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-7 mb-2">
-      <div v-for="day in weekDays" :key="day" class="text-center text-sm text-gray-500 font-medium p-2">
-        {{ day }}
+    <!-- 星期标题 -->
+    <div class="grid grid-cols-7 border-b">
+      <div v-for="day in weekDays" :key="day" 
+        class="text-center py-2 text-sm text-gray-600">
+        周{{ day }}
       </div>
     </div>
     
-    <div class="flex-1 grid grid-cols-7 gap-[1px] overflow-auto bg-gray-100">
+    <!-- 日历格子 -->
+    <div class="flex-1 grid grid-cols-7">
       <div
         v-for="date in calendarDays"
         :key="date.date"
+        class="border-b border-r p-2 min-h-[100px] relative"
         :class="[
-          'p-3 min-h-[120px] bg-white hover:bg-gray-50 transition-colors duration-200',
-          isToday(date.date) ? 'relative ring-2 ring-blue-500 ring-inset' : '',
-          !date.isCurrentMonth ? 'bg-gray-50/50' : ''
+          !date.isCurrentMonth ? 'bg-gray-50' : 'bg-white',
         ]"
       >
-        <div class="flex justify-between items-center mb-2">
-          <span :class="[
-            'flex items-center justify-center text-sm w-7 h-7 rounded-full',
-            isToday(date.date) ? 'bg-blue-500 text-white font-medium' : 'text-gray-700'
-          ]">
-            {{ date.dayOfMonth }}
-          </span>
-          <span v-if="getTaskCount(date.date) > 0" class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-            {{ getTaskCount(date.date) }}
-          </span>
-        </div>
-        
-        <div class="space-y-1.5">
-          <div
-            v-for="task in getDateTasks(date.date)"
-            :key="task.id"
-            :class="[
-              'task-item text-xs px-2.5 py-1.5 rounded-md cursor-pointer transition-all duration-200 hover:translate-x-0.5',
-              getTaskColorClass(task)
-            ]"
-            :data-task-id="task.id"
-            @click="handleTaskClick(task)"
-          >
-            <div class="task-title line-clamp-1">
-              {{ task.title }}
-              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">过期</span>
+        <div class="flex flex-col h-full">
+          <!-- 日期显示 -->
+          <div class="flex items-start justify-between mb-1">
+            <div class="flex flex-col items-start">
+              <span class="text-xs text-gray-400">{{ getDateInfo(date.date).lunarDate }}</span>
+              <span :class="[
+                'text-sm leading-none mt-1',
+                isToday(date.date) ? 'text-red-500' : (date.isCurrentMonth ? 'text-gray-900' : 'text-gray-400')
+              ]">
+                {{ date.dayOfMonth }}日
+              </span>
+            </div>
+          </div>
+
+          <!-- 任务列表 -->
+          <div class="space-y-1">
+            <div
+              v-for="task in getDateTasks(date.date)"
+              :key="task.id"
+              :class="[
+                'task-item text-xs py-0.5 cursor-pointer truncate',
+                getTaskColorClass(task)
+              ]"
+              :data-task-id="task.id"
+              @click="handleTaskClick(task)"
+            >
+              <div class="flex items-center gap-1">
+                <span class="task-dot"></span>
+                {{ task.title }}
+              </div>
             </div>
           </div>
         </div>
@@ -145,20 +149,11 @@ const isToday = (date: Date) => {
 
 // 获取指定日期的任务
 const getDateTasks = (date: Date) => {
-  console.log('正在获取日期的任务:', dayjs(date).format('YYYY-MM-DD'));
   const tasks = taskStore.tasks.filter(task => {
     const taskDate = dayjs(task.deadline);
     const compareDate = dayjs(date);
-    const isSameDay = taskDate.format('YYYY-MM-DD') === compareDate.format('YYYY-MM-DD');
-    console.log('比较任务:', {
-      taskTitle: task.title,
-      taskDate: taskDate.format('YYYY-MM-DD HH:mm:ss'),
-      compareDate: compareDate.format('YYYY-MM-DD'),
-      isSameDay
-    });
-    return isSameDay;
+    return taskDate.format('YYYY-MM-DD') === compareDate.format('YYYY-MM-DD');
   });
-  console.log('找到的任务:', tasks);
   return tasks;
 };
 
@@ -169,11 +164,11 @@ const getTaskCount = (date: Date) => {
 
 // 获取任务颜色类名
 const getTaskColorClass = (task: Task) => {
-  if (task.completed) return 'bg-gray-100 text-gray-500 line-through';
-  if (task.important && task.urgent) return 'bg-red-100 text-red-800';
-  if (task.important) return 'bg-yellow-100 text-yellow-800';
-  if (task.urgent) return 'bg-blue-100 text-blue-800';
-  return 'bg-green-100 text-green-800';
+  if (task.completed) return 'text-gray-400';
+  if (task.important && task.urgent) return 'text-red-500';
+  if (task.important) return 'text-yellow-600';
+  if (task.urgent) return 'text-blue-500';
+  return 'text-green-500';
 };
 
 // 处理任务点击
@@ -221,8 +216,6 @@ const initTooltips = () => {
 
 // 在组件挂载和任务更新时初始化提示
 onMounted(() => {
-  console.log('日历视图加载，当前任务列表:', taskStore.tasks);
-  // 等待DOM更新后初始化提示
   setTimeout(initTooltips, 0);
 });
 
@@ -236,76 +229,41 @@ watch(() => taskStore.tasks, () => {
 const backToToday = () => {
   currentDate.value = dayjs();
 };
-</script> 
 
-<style>
-/* 自定义提示样式 */
-.tippy-box[data-theme~='custom'] {
-  background-color: white;
-  color: black;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+// 添加获取日期信息的函数
+const getDateInfo = (date: Date) => {
+  return {
+    lunarDate: '', // 这里需要集成农历转换库
+  };
+};
+</script>
+
+<style scoped>
+.task-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: currentColor;
 }
 
-.tippy-box[data-theme~='custom'] .tippy-arrow {
-  color: white;
-}
-
-.tippy-box[data-theme~='custom'] .tippy-content {
-  padding: 0;
-}
-
-.task-title {
-  font-weight: normal;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.expired-tag {
-  font-size: 10px;
-  color: #ff4d4f;
-  background-color: #fff1f0;
-  border: 1px solid #ffccc7;
-  padding: 0 4px;
-  border-radius: 4px;
-  font-weight: normal;
-}
-
-/* 任务卡片样式 */
 .task-item {
-  border-left: 3px solid transparent;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .task-item:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 0.8;
 }
 
-/* 更新任务颜色类 */
-.task-item.bg-red-100 {
-  background-color: #fff2f0;
-  border-left-color: #ff4d4f;
+/* 移除最右侧的边框 */
+.grid-cols-7 > div:nth-child(7n) {
+  border-right: none;
 }
 
-.task-item.bg-yellow-100 {
-  background-color: #feffe6;
-  border-left-color: #faad14;
-}
-
-.task-item.bg-blue-100 {
-  background-color: #e6f4ff;
-  border-left-color: #1890ff;
-}
-
-.task-item.bg-green-100 {
-  background-color: #f6ffed;
-  border-left-color: #52c41a;
-}
-
-.task-item.bg-gray-100 {
-  background-color: #fafafa;
-  border-left-color: #d9d9d9;
+/* 移除最后一行的底部边框 */
+.grid-cols-7 > div:nth-last-child(-n+7) {
+  border-bottom: none;
 }
 </style> 
