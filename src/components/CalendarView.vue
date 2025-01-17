@@ -1,43 +1,74 @@
 <template>
-  <div class="h-full flex flex-col">
-    <div class="grid grid-cols-7 gap-1 mb-4">
-      <div v-for="day in weekDays" :key="day" class="text-center font-bold p-2">
+  <div class="h-full flex flex-col bg-white p-6">
+    <!-- 月份导航 -->
+    <div class="flex justify-between items-center mb-6 px-2">
+      <div class="flex items-center gap-4">
+        <h2 class="text-xl font-medium">{{ currentMonth }}</h2>
+        <button 
+          @click="backToToday"
+          class="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
+        >
+          今天
+        </button>
+      </div>
+      <div class="flex items-center gap-2">
+        <button 
+          @click="previousMonth"
+          class="w-8 h-8 flex items-center justify-center text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+        >
+          ‹
+        </button>
+        <button 
+          @click="nextMonth"
+          class="w-8 h-8 flex items-center justify-center text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-7 mb-2">
+      <div v-for="day in weekDays" :key="day" class="text-center text-sm text-gray-500 font-medium p-2">
         {{ day }}
       </div>
     </div>
     
-    <div class="flex-1 grid grid-cols-7 gap-1 overflow-auto">
+    <div class="flex-1 grid grid-cols-7 gap-[1px] overflow-auto bg-gray-100">
       <div
         v-for="date in calendarDays"
         :key="date.date"
         :class="[
-          'p-2 min-h-[100px] border rounded',
-          isToday(date.date) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+          'p-3 min-h-[120px] bg-white hover:bg-gray-50 transition-colors duration-200',
+          isToday(date.date) ? 'relative ring-2 ring-blue-500 ring-inset' : '',
+          !date.isCurrentMonth ? 'bg-gray-50/50' : ''
         ]"
       >
         <div class="flex justify-between items-center mb-2">
-          <span :class="{'text-blue-600 font-bold': isToday(date.date)}">
+          <span :class="[
+            'flex items-center justify-center text-sm w-7 h-7 rounded-full',
+            isToday(date.date) ? 'bg-blue-500 text-white font-medium' : 'text-gray-700'
+          ]">
             {{ date.dayOfMonth }}
           </span>
-          <span class="text-xs text-gray-500">
-            {{ getTaskCount(date.date) }}个任务
+          <span v-if="getTaskCount(date.date) > 0" class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+            {{ getTaskCount(date.date) }}
           </span>
         </div>
         
-        <div class="space-y-1">
+        <div class="space-y-1.5">
           <div
             v-for="task in getDateTasks(date.date)"
             :key="task.id"
             :class="[
-              'task-item text-xs p-1 rounded cursor-pointer truncate',
+              'task-item text-xs px-2.5 py-1.5 rounded-md cursor-pointer transition-all duration-200 hover:translate-x-0.5',
               getTaskColorClass(task)
             ]"
             :data-task-id="task.id"
             @click="handleTaskClick(task)"
           >
-            <div class="task-title">
+            <div class="task-title line-clamp-1">
               {{ task.title }}
-              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
+              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">过期</span>
             </div>
           </div>
         </div>
@@ -70,12 +101,27 @@ const editingTask = ref<Task | null>(null);
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
-const today = dayjs();
-const startOfMonth = today.startOf('month');
-const endOfMonth = today.endOf('month');
+// 当前显示的月份
+const currentDate = ref(dayjs());
+
+// 计算当前月份显示文本
+const currentMonth = computed(() => {
+  return currentDate.value.format('YYYY年M月');
+});
+
+// 月份切换函数
+const previousMonth = () => {
+  currentDate.value = currentDate.value.subtract(1, 'month');
+};
+
+const nextMonth = () => {
+  currentDate.value = currentDate.value.add(1, 'month');
+};
 
 // 生成日历数据
 const calendarDays = computed(() => {
+  const startOfMonth = currentDate.value.startOf('month');
+  const endOfMonth = currentDate.value.endOf('month');
   const days = [];
   let current = startOfMonth.startOf('week');
   const end = endOfMonth.endOf('week');
@@ -84,7 +130,7 @@ const calendarDays = computed(() => {
     days.push({
       date: current.toDate(),
       dayOfMonth: current.date(),
-      isCurrentMonth: current.month() === today.month()
+      isCurrentMonth: current.month() === currentDate.value.month()
     });
     current = current.add(1, 'day');
   }
@@ -94,7 +140,7 @@ const calendarDays = computed(() => {
 
 // 判断是否是今天
 const isToday = (date: Date) => {
-  return dayjs(date).isSame(today, 'day');
+  return dayjs(date).isSame(dayjs(), 'day');
 };
 
 // 获取指定日期的任务
@@ -185,6 +231,11 @@ watch(() => taskStore.tasks, () => {
   // 等待DOM更新后重新初始化提示
   setTimeout(initTooltips, 0);
 }, { deep: true });
+
+// 添加返回今天的功能
+const backToToday = () => {
+  currentDate.value = dayjs();
+};
 </script> 
 
 <style>
@@ -193,8 +244,8 @@ watch(() => taskStore.tasks, () => {
   background-color: white;
   color: black;
   border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .tippy-box[data-theme~='custom'] .tippy-arrow {
@@ -206,20 +257,55 @@ watch(() => taskStore.tasks, () => {
 }
 
 .task-title {
-  font-weight: bold;
-  margin-bottom: 4px;
+  font-weight: normal;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .expired-tag {
-  font-size: 12px;
+  font-size: 10px;
   color: #ff4d4f;
   background-color: #fff1f0;
   border: 1px solid #ffccc7;
-  padding: 0 6px;
+  padding: 0 4px;
   border-radius: 4px;
   font-weight: normal;
+}
+
+/* 任务卡片样式 */
+.task-item {
+  border-left: 3px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.task-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 更新任务颜色类 */
+.task-item.bg-red-100 {
+  background-color: #fff2f0;
+  border-left-color: #ff4d4f;
+}
+
+.task-item.bg-yellow-100 {
+  background-color: #feffe6;
+  border-left-color: #faad14;
+}
+
+.task-item.bg-blue-100 {
+  background-color: #e6f4ff;
+  border-left-color: #1890ff;
+}
+
+.task-item.bg-green-100 {
+  background-color: #f6ffed;
+  border-left-color: #52c41a;
+}
+
+.task-item.bg-gray-100 {
+  background-color: #fafafa;
+  border-left-color: #d9d9d9;
 }
 </style> 
