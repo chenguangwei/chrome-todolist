@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "时间管理助手",
+  "name": "四象限法则的任务管理工具",
   "version": "1.0.0",
   "description": "基于四象限法则的任务管理工具",
   "permissions": [
