@@ -89,7 +89,8 @@ module.exports = {
               version: process.env.npm_package_version
             }))
           }
-        }
+        },
+        { from: '_locales', to: '_locales' }
       ]
     })
   ],

@@ -4,8 +4,8 @@
       class="rounded-xl p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
       <h3 class="text-base font-medium mb-4 flex items-center" :class="quadrant.titleClass">
         <span class="w-2.5 h-2.5 rounded-full mr-2" :class="quadrant.dotClass"></span>
-        {{ quadrant.title }}
-        <span class="ml-auto text-xs text-gray-400 font-normal">{{ getQuadrantTasks(quadrant.important, quadrant.urgent).length }}个任务</span>
+        {{ t(quadrant.titleKey) }}
+        <span class="ml-auto text-xs text-gray-400 font-normal">{{ getQuadrantTasks(quadrant.important, quadrant.urgent).length }}{{ t('quadrant.tasks') }}</span>
       </h3>
       <div class="space-y-3 max-h-[calc(100%-3rem)] overflow-y-auto custom-scrollbar">
         <div
@@ -18,14 +18,14 @@
           <div class="flex justify-between items-start gap-3">
             <h4 class="text-sm flex-1" :class="{'line-through text-gray-400': task.completed}">
               {{ task.title }}
-              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">已过期</span>
+              <span v-if="isTaskExpired(task.deadline)" class="expired-tag">{{ t('common.expired') }}</span>
             </h4>
             <button
               @click.stop="toggleTaskStatus(task)"
               class="text-xs px-2 py-1 rounded-full transition-colors duration-200"
               :class="task.completed ? 'bg-gray-100 text-gray-500' : 'bg-green-50 text-green-600 hover:bg-green-100'"
             >
-              {{ task.completed ? '已完成' : '未完成' }}
+              {{ task.completed ? t('common.completed') : t('common.uncompleted') }}
             </button>
           </div>
           <p class="text-xs text-gray-500 mt-2 line-clamp-2" v-if="task.description">{{ task.description }}</p>
@@ -46,11 +46,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useTaskStore } from '@/stores/task';
 import { formatDate, isTaskExpired } from '@/utils/date';
 import type { Task } from '@/types/task';
 import TaskEditDialog from './TaskEditDialog.vue';
+import { t } from '@/locales';
 
 const taskStore = useTaskStore();
 
@@ -60,28 +61,28 @@ const editingTask = ref<Task | null>(null);
 
 const quadrants = [
   {
-    title: '重要且紧急',
+    titleKey: 'quadrant.importantUrgent',
     important: true,
     urgent: true,
     titleClass: 'text-red-600',
     dotClass: 'bg-red-600'
   },
   {
-    title: '重要不紧急',
+    titleKey: 'quadrant.importantNotUrgent',
     important: true,
     urgent: false,
     titleClass: 'text-yellow-600',
     dotClass: 'bg-yellow-600'
   },
   {
-    title: '紧急不重要',
+    titleKey: 'quadrant.urgentNotImportant',
     important: false,
     urgent: true,
     titleClass: 'text-blue-600',
     dotClass: 'bg-blue-600'
   },
   {
-    title: '不重要不紧急',
+    titleKey: 'quadrant.notImportantNotUrgent',
     important: false,
     urgent: false,
     titleClass: 'text-green-600',

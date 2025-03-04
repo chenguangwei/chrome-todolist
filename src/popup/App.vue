@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-100 p-4">
     <div v-if="isLoading" class="flex justify-center items-center h-32">
-      <div class="text-gray-500">加载中...</div>
+      <div class="text-gray-500">{{ t('common.loading') }}</div>
     </div>
     <div v-else>
       <div class="flex justify-between items-center mb-4">
@@ -17,17 +17,20 @@
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             ]"
           >
-            {{ view.name }}
+            {{ t(view.nameKey) }}
           </button>
         </div>
         
-        <button
-          @click="showDonateDialog = true"
-          class="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded hover:opacity-90 transition-opacity flex items-center space-x-1"
-        >
-          <span>❤️</span>
-          <span>支持作者</span>
-        </button>
+        <div class="flex items-center space-x-2">
+          <LanguageSwitcher />
+          <button
+            @click="showDonateDialog = true"
+            class="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded hover:opacity-90 transition-opacity flex items-center space-x-1"
+          >
+            <span>❤️</span>
+            <span>{{ t('donate.supportAuthor') }}</span>
+          </button>
+        </div>
       </div>
 
       <TaskInput />
@@ -49,10 +52,12 @@ import TaskInput from '../components/TaskInput.vue';
 import QuadrantView from '../components/QuadrantView.vue';
 import CalendarView from '../components/CalendarView.vue';
 import DonateDialog from '../components/DonateDialog.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import { t, initLocale } from '@/locales';
 
 const views = [
-  { id: 'quadrant', name: '四象限视图' },
-  { id: 'calendar', name: '日历视图' }
+  { id: 'quadrant', nameKey: 'views.quadrant' },
+  { id: 'calendar', nameKey: 'views.calendar' }
 ];
 
 const currentView = ref('quadrant');
@@ -64,6 +69,10 @@ const showDonateDialog = ref(false);
 onMounted(async () => {
   try {
     isLoading.value = true;
+    
+    // 初始化语言
+    await initLocale();
+    
     taskStore.$reset();
     await taskStore.loadTasks();
     
