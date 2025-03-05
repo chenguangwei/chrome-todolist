@@ -8,7 +8,7 @@
           @click="backToToday"
           class="px-3 py-1 text-sm border rounded hover:bg-gray-50"
         >
-          今天
+          {{ t('common.today') }}
         </button>
         <button 
           @click="previousMonth"
@@ -27,9 +27,9 @@
 
     <!-- 星期标题 -->
     <div class="grid grid-cols-7 border-b">
-      <div v-for="day in weekDays" :key="day" 
+      <div v-for="(day, index) in t('calendar.weekdays')" :key="index" 
         class="text-center py-2 text-sm text-gray-600">
-        周{{ day }}
+        {{ day }}
       </div>
     </div>
     
@@ -52,7 +52,7 @@
                 'text-sm leading-none mt-1',
                 isToday(date.date) ? 'text-red-500' : (date.isCurrentMonth ? 'text-gray-900' : 'text-gray-400')
               ]">
-                {{ date.dayOfMonth }}日
+                {{ formatDayNumber(date.dayOfMonth) }}
               </span>
             </div>
           </div>
@@ -96,6 +96,7 @@ import { useTaskStore } from '@/stores/task';
 import type { Task } from '@/types/task';
 import { formatDate, isTaskExpired } from '@/utils/date';
 import TaskEditDialog from './TaskEditDialog.vue';
+import { t, currentLocale } from '@/locales';
 
 const taskStore = useTaskStore();
 
@@ -103,15 +104,30 @@ const taskStore = useTaskStore();
 const showEditDialog = ref(false);
 const editingTask = ref<Task | null>(null);
 
-const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-
 // 当前显示的月份
 const currentDate = ref(dayjs());
 
 // 计算当前月份显示文本
 const currentMonth = computed(() => {
-  return currentDate.value.format('YYYY年M月');
+  if (currentLocale.value === 'zh') {
+    return currentDate.value.format('YYYY年M月');
+  } else if (currentLocale.value === 'ja') {
+    return currentDate.value.format('YYYY年M月');
+  } else {
+    return currentDate.value.format('MMMM YYYY');
+  }
 });
+
+// 格式化日期数字
+const formatDayNumber = (day: number) => {
+  if (currentLocale.value === 'zh') {
+    return `${day}日`;
+  } else if (currentLocale.value === 'ja') {
+    return `${day}日`;
+  } else {
+    return day;
+  }
+};
 
 // 月份切换函数
 const previousMonth = () => {
@@ -179,16 +195,31 @@ const handleTaskClick = (task: Task) => {
 
 // 格式化任务详情
 const formatTaskDetails = (task: Task) => {
+  const reminderText = task.reminder ? `${t('task.reminder')}: ${task.reminder >= 60 ? task.reminder / 60 + t('time.hour') : task.reminder + t('time.minute')}` : t('task.noReminder');
+  const repeatMap: Record<string, string> = {
+    hourly: t('repeat.hourly'),
+    daily: t('repeat.daily'),
+    weekly: t('repeat.weekly'),
+    monthly: t('repeat.monthly'),
+    workdays: t('repeat.workdays'),
+    weekends: t('repeat.weekends')
+  };
+  const repeatText = task.repeat ? repeatMap[task.repeat] : t('repeat.never');
+
   return `
     <div class="p-2">
       <div class="font-bold mb-1">${task.title}</div>
-      <div class="text-sm mb-1">${task.description || '无描述'}</div>
+      <div class="text-sm mb-1">${task.description || t('task.noDescription')}</div>
       <div class="text-xs text-gray-500">
-        截止时间: ${formatDate(task.deadline)}
+        ${t('task.deadline')}: ${formatDate(task.deadline)}
         <br>
-        优先级: ${task.important ? '重要' : '不重要'}${task.urgent ? '且紧急' : '不紧急'}
+        ${t('task.reminder')}: ${reminderText}
         <br>
-        状态: ${task.completed ? '已完成' : '未完成'}
+        ${t('task.repeat')}: ${repeatText}
+        <br>
+        ${t('task.priority')}: ${task.important ? t('task.important') : t('task.notImportant')}${task.urgent ? t('task.andUrgent') : t('task.notUrgent')}
+        <br>
+        ${t('task.status')}: ${task.completed ? t('common.completed') : t('common.uncompleted')}
       </div>
     </div>
   `;
@@ -224,6 +255,11 @@ watch(() => taskStore.tasks, () => {
   // 等待DOM更新后重新初始化提示
   setTimeout(initTooltips, 0);
 }, { deep: true });
+
+// 监听语言变化
+watch(currentLocale, () => {
+  setTimeout(initTooltips, 0);
+});
 
 // 添加返回今天的功能
 const backToToday = () => {

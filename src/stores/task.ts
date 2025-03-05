@@ -10,7 +10,7 @@ export const useTaskStore = defineStore('task', () => {
     if (isInitialized.value) return;
     
     try {
-      const result = await chrome.storage.local.get('tasks');
+      const result = await chrome.storage.sync.get('tasks');
       
       if (result.tasks) {
         if (Array.isArray(result.tasks)) {
@@ -61,7 +61,7 @@ export const useTaskStore = defineStore('task', () => {
         createdAt: new Date(task.createdAt).toISOString()
       }));
 
-      await chrome.storage.local.set({ tasks: validTasks });
+      await chrome.storage.sync.set({ tasks: validTasks });
     } catch (error) {
       // 静默处理错误
     }
