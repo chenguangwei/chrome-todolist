@@ -4,20 +4,20 @@
       <input
         v-model="title"
         type="text"
-        placeholder="任务标题"
+        :placeholder="t('task.title')"
         class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       
       <textarea
         v-model="description"
-        placeholder="任务描述"
+        :placeholder="t('task.description')"
         class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         rows="3"
       ></textarea>
       
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">截止日期</label>
+          <label class="block text-sm font-medium text-gray-700">{{ t('task.deadline') }}</label>
           <input
             v-model="deadline"
             type="datetime-local"
@@ -32,7 +32,7 @@
               type="checkbox"
               class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             />
-            <span class="text-sm font-medium text-gray-700">重要</span>
+            <span class="text-sm font-medium text-gray-700">{{ t('task.important') }}</span>
           </label>
           
           <label class="flex items-center space-x-2">
@@ -41,7 +41,7 @@
               type="checkbox"
               class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             />
-            <span class="text-sm font-medium text-gray-700">紧急</span>
+            <span class="text-sm font-medium text-gray-700">{{ t('task.urgent') }}</span>
           </label>
         </div>
       </div>
@@ -50,7 +50,7 @@
         type="submit"
         class="w-full px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
-        添加任务
+        {{ t('task.addTask') }}
       </button>
     </form>
   </div>
@@ -59,6 +59,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useTaskStore } from '@/stores/task';
+import { t } from '@/locales';
 
 const taskStore = useTaskStore();
 
@@ -104,7 +105,7 @@ watch([title, description, deadline, important, urgent], async () => {
 
 const handleSubmit = async () => {
   if (!title.value || !deadline.value) {
-    alert('请填写任务标题和截止时间！');
+    alert(t('task.pleaseComplete'));
     return;
   }
 

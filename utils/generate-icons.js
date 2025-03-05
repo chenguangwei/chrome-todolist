@@ -4,10 +4,15 @@ const { createCanvas } = require('canvas');
 
 const sizes = [16, 48, 128];
 const iconDir = path.resolve(__dirname, '../src/assets/icons');
+const assetsDir = path.resolve(__dirname, '../src/assets');
 
 // 确保目录存在
 if (!fs.existsSync(iconDir)) {
   fs.mkdirSync(iconDir, { recursive: true });
+}
+
+if (!fs.existsSync(assetsDir)) {
+  fs.mkdirSync(assetsDir, { recursive: true });
 }
 
 // 为每个尺寸生成图标
@@ -35,4 +40,30 @@ sizes.forEach(size => {
   fs.writeFileSync(path.join(iconDir, `icon${size}.png`), buffer);
 });
 
-console.log('Icons generated successfully!'); 
+// 生成捐赠二维码占位图
+const donateSize = 200;
+const donateCanvas = createCanvas(donateSize, donateSize);
+const ctx = donateCanvas.getContext('2d');
+
+// 绘制白色背景
+ctx.fillStyle = '#FFFFFF';
+ctx.fillRect(0, 0, donateSize, donateSize);
+
+// 绘制边框
+ctx.strokeStyle = '#E5E7EB';
+ctx.lineWidth = 2;
+ctx.strokeRect(1, 1, donateSize - 2, donateSize - 2);
+
+// 添加文字
+ctx.fillStyle = '#6B7280';
+ctx.font = '16px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('请替换成您的', donateSize/2, donateSize/2 - 20);
+ctx.fillText('支付二维码', donateSize/2, donateSize/2 + 20);
+
+// 保存捐赠二维码占位图
+const donateBuffer = donateCanvas.toBuffer('image/png');
+fs.writeFileSync(path.join(assetsDir, 'donate.png'), donateBuffer);
+
+console.log('Icons and donate placeholder generated successfully!'); 
